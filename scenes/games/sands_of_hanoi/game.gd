@@ -133,7 +133,7 @@ func _draw_bottle(i: int):
 
 	var layer_h := (inner.size.y - (b.max_layers - 1.0) * LAYER_GAP) / b.max_layers
 	for j in b.layers.size():
-		var c := COLORS[b.layers[j]]
+		var c = COLORS[b.layers[j]]
 		var ly := inner.position.y + inner.size.y - (j + 1.0) * (layer_h + LAYER_GAP) + LAYER_GAP
 		draw_rect(Rect2(inner.position.x, ly, inner.size.x, layer_h), c)
 
