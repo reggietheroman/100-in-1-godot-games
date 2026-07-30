@@ -83,6 +83,7 @@ func _generate():
 		var b := Bottle.new(5, BOTTLE_W)
 		b.layers = all_layers.slice(i * 5, (i + 1) * 5)
 		bottles.append(b)
+		b.check_seal()
 
 	bottles.append(Bottle.new(10, BOTTLE_W + 8))
 
