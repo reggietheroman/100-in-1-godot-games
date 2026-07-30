@@ -12,6 +12,11 @@ const COLORS := {
 }
 const COLOR_NAMES := ["red", "blue", "green", "yellow", "orange", "purple", "pink", "cyan"]
 
+const USE_COLORS := 6
+const SMALL_CAPACITY := 4
+const BIG_CAPACITY := 8
+const INIT_LAYERS := 3
+
 const BOTTLE_W := 56
 const BOTTLE_H := 160
 const LAYER_GAP := 1
@@ -74,31 +79,40 @@ func _generate():
 	bottles.clear()
 
 	for i in 9:
-		var max_layers = 4 if i < 8 else 8
+		var max_layers = SMALL_CAPACITY if i < 8 else BIG_CAPACITY
 		var w = BOTTLE_W if i < 8 else BOTTLE_W + 8
 		bottles.append(Bottle.new(max_layers, w))
 
-	var colors := COLOR_NAMES.duplicate()
-	colors.shuffle()
-	var rng := RandomNumberGenerator.new()
+	var bibd := [
+		[0, 1, 2],
+		[0, 1, 3],
+		[0, 2, 4],
+		[0, 3, 5],
+		[1, 4, 5],
+		[1, 2, 5],
+		[2, 3, 4],
+		[3, 4, 5],
+	]
 
-	for pair in 4:
-		var a = colors[pair * 2]
-		var b = colors[pair * 2 + 1]
-		var n = rng.randi_range(1, 3)
+	var color_pool := COLOR_NAMES.slice(0, USE_COLORS)
+	var indices := []
+	for u in USE_COLORS:
+		indices.append(u)
+	indices.shuffle()
 
-		for _i in n:
-			bottles[pair * 2].layers.append(a)
-		for _i in (4 - n):
-			bottles[pair * 2].layers.append(b)
+	var order := []
+	for u in 8:
+		order.append(u)
+	order.shuffle()
 
-		for _i in n:
-			bottles[pair * 2 + 1].layers.append(b)
-		for _i in (4 - n):
-			bottles[pair * 2 + 1].layers.append(a)
-
-	for i in 8:
-		bottles[i].check_seal()
+	for bi in 8:
+		var block := bibd[order[bi]]
+		var layers := []
+		for c in block:
+			layers.append(color_pool[indices[c]])
+		layers.shuffle()
+		bottles[bi].layers = layers
+		bottles[bi].check_seal()
 
 
 func _layout():
