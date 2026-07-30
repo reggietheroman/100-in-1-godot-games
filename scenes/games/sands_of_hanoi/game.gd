@@ -106,7 +106,7 @@ func _generate():
 	order.shuffle()
 
 	for bi in 8:
-		var block := bibd[order[bi]]
+		var block = bibd[order[bi]]
 		var layers := []
 		for c in block:
 			layers.append(color_pool[indices[c]])
