@@ -25,7 +25,8 @@
 - **Sealing**: A bottle with 5 layers of a single color is sealed (locked, no longer usable)
 - **Goal**: Each of the 8 small bottles contains 5 layers of only 1 color
 - **Interaction**: Click/tap a bottle to select it (yellow highlight), then click/tap another to pour
-- **Initial state**: 40 layers (5 per color × 8 colors) randomly shuffled and distributed 5 per small bottle
+- **Initial state**: Paired reciprocal pattern — colors are paired, each pair has a reciprocal split (e.g., bottle A has 3A+2B, bottle B has 3B+2A). Guarantees solvability.
+- **Generation**: Colors shuffled and paired randomly, split size (1-4) randomized per pair
 
 ### Implementation
 

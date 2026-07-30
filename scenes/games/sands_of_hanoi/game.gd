@@ -73,19 +73,32 @@ func _ready():
 func _generate():
 	bottles.clear()
 
-	var all_layers := []
-	for c in COLOR_NAMES:
-		for _j in 5:
-			all_layers.append(c)
-	all_layers.shuffle()
+	for i in 9:
+		var max_layers = 5 if i < 8 else 10
+		var w = BOTTLE_W if i < 8 else BOTTLE_W + 8
+		bottles.append(Bottle.new(max_layers, w))
+
+	var colors := COLOR_NAMES.duplicate()
+	colors.shuffle()
+	var rng := RandomNumberGenerator.new()
+
+	for pair in 4:
+		var a = colors[pair * 2]
+		var b = colors[pair * 2 + 1]
+		var n = rng.randi_range(1, 4)
+
+		for _i in n:
+			bottles[pair * 2].layers.append(a)
+		for _i in (5 - n):
+			bottles[pair * 2].layers.append(b)
+
+		for _i in n:
+			bottles[pair * 2 + 1].layers.append(b)
+		for _i in (5 - n):
+			bottles[pair * 2 + 1].layers.append(a)
 
 	for i in 8:
-		var b := Bottle.new(5, BOTTLE_W)
-		b.layers = all_layers.slice(i * 5, (i + 1) * 5)
-		bottles.append(b)
-		b.check_seal()
-
-	bottles.append(Bottle.new(10, BOTTLE_W + 8))
+		bottles[i].check_seal()
 
 
 func _layout():
