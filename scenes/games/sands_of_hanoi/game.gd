@@ -45,7 +45,7 @@ class Bottle:
 	func check_seal():
 		if not is_full():
 			return
-		var first := layers[0]
+		var first = layers[0]
 		for l in layers:
 			if l != first:
 				return
