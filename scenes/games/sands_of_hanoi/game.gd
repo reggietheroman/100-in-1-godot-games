@@ -74,7 +74,7 @@ func _generate():
 	bottles.clear()
 
 	for i in 9:
-		var max_layers = 5 if i < 8 else 10
+		var max_layers = 4 if i < 8 else 8
 		var w = BOTTLE_W if i < 8 else BOTTLE_W + 8
 		bottles.append(Bottle.new(max_layers, w))
 
@@ -85,16 +85,16 @@ func _generate():
 	for pair in 4:
 		var a = colors[pair * 2]
 		var b = colors[pair * 2 + 1]
-		var n = rng.randi_range(1, 4)
+		var n = rng.randi_range(1, 3)
 
 		for _i in n:
 			bottles[pair * 2].layers.append(a)
-		for _i in (5 - n):
+		for _i in (4 - n):
 			bottles[pair * 2].layers.append(b)
 
 		for _i in n:
 			bottles[pair * 2 + 1].layers.append(b)
-		for _i in (5 - n):
+		for _i in (4 - n):
 			bottles[pair * 2 + 1].layers.append(a)
 
 	for i in 8:

@@ -19,13 +19,13 @@
 ## Sands of Hanoi
 - **POV**: Flat 2D
 - **Concept**: Towers of Hanoi variation — sorting colored sand layers into pure-color bottles
-- **Layout**: 9 bottles — 8 small (5 layers each), 1 big (10 layers)
+- **Layout**: 9 bottles — 8 small (4 layers each), 1 big (8 layers)
 - **Big bottle**: Starts empty in center (acts as workspace/temporary storage)
 - **Pouring rule**: Can only pour onto sand of the same color (or into an empty bottle). You pour all consecutive top layers of the same color in one action.
-- **Sealing**: A bottle with 5 layers of a single color is sealed (locked, no longer usable)
-- **Goal**: Each of the 8 small bottles contains 5 layers of only 1 color
+- **Sealing**: A bottle with 4 layers of a single color is sealed (locked, no longer usable)
+- **Goal**: Each of the 8 small bottles contains 4 layers of only 1 color
 - **Interaction**: Click/tap a bottle to select it (yellow highlight), then click/tap another to pour
-- **Initial state**: Paired reciprocal pattern — colors are paired, each pair has a reciprocal split (e.g., bottle A has 3A+2B, bottle B has 3B+2A). Guarantees solvability.
+- **Initial state**: Paired reciprocal pattern — colors are paired, each pair has a reciprocal split (e.g., bottle A has 3A+1B, bottle B has 3B+1A). Capacity 4 per small bottle, 8 for big. Guarantees solvability.
 - **Generation**: Colors shuffled and paired randomly, split size (1-4) randomized per pair
 
 ### Implementation
