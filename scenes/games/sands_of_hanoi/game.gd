@@ -105,7 +105,7 @@ func _layout():
 				oy + row * (BOTTLE_H + ROW_GAP)
 			)
 
-	var big := bottles[8]
+	var big = bottles[8]
 	big.rect.position = Vector2(
 		(vp.x - big.rect.size.x) / 2,
 		oy + rows_h + ROW_GAP
