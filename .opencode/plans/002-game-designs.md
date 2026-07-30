@@ -24,7 +24,28 @@
 - **Pouring rule**: Can only pour onto sand of the same color (or into an empty bottle). You pour all consecutive top layers of the same color in one action.
 - **Sealing**: A bottle with 5 layers of a single color is sealed (locked, no longer usable)
 - **Goal**: Each of the 8 small bottles contains 5 layers of only 1 color
-- **Interaction**: Click/pour to move sand between bottles
+- **Interaction**: Click/tap a bottle to select it (yellow highlight), then click/tap another to pour
+- **Initial state**: 40 layers (5 per color × 8 colors) randomly shuffled and distributed 5 per small bottle
+
+### Implementation
+
+**Files**: `scenes/games/sands_of_hanoi/game.gd`, `game.tscn`
+
+**Architecture**:
+- `Bottle` class: holds `layers` array (strings), `max_layers`, `rect` (position/size on screen), `sealed` flag
+- Game root: `Node2D` with custom `_draw()` for rendering
+- UI: `CanvasLayer` with Back button, Move counter, instruction label, win label
+- Input: `_unhandled_input()` handles both mouse and touch events
+
+**Rendering**:
+- Dark background, beige bottle bodies, dark inner well
+- Colored rectangles for sand layers (drawn bottom-to-top)
+- Green tint overlay on sealed bottles
+- Yellow highlight border on selected bottle
+
+**Layout** (portrait-first):
+- 4 columns × 2 rows of small bottles at top, big bottle centered below
+- Dimensions auto-fit viewport with `_layout()` in `_ready()`
 
 ## Snow Survival
 - **POV**: Isometric
