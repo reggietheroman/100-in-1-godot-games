@@ -19,14 +19,14 @@
 ## Sands of Hanoi
 - **POV**: Flat 2D
 - **Concept**: Towers of Hanoi variation — sorting colored sand layers into pure-color bottles
-- **Layout**: 9 bottles — 8 small (4 layers each), 1 big (8 layers)
-- **Big bottle**: Starts empty in center (acts as workspace/temporary storage)
+- **Layout**: 8 bottles (4 layers each) in a 4×2 grid
+- **Workspace**: 1 empty bottle (index 7, white outline) acts as workspace/temporary storage
 - **Pouring rule**: Can only pour onto sand of the same color (or into an empty bottle). You pour all consecutive top layers of the same color in one action.
 - **Sealing**: A bottle with 4 layers of a single color is sealed (locked, no longer usable)
-- **Goal**: Each of the 8 small bottles contains 4 layers of only 1 color
+- **Goal**: Each of the 7 filled bottles contains 4 layers of only 1 color
 - **Interaction**: Click/tap a bottle to select it (yellow highlight), then click/tap another to pour
-- **Initial state**: Paired reciprocal pattern — colors are paired, each pair has a reciprocal split (e.g., bottle A has 3A+1B, bottle B has 3B+1A). Capacity 4 per small bottle, 8 for big. Guarantees solvability.
-- **Generation**: Colors shuffled and paired randomly, split size (1-4) randomized per pair
+- **Initial state**: Complement-of-Fano BIBD — 7 colors × 4 layers each, distributed across 7 bottles so each color pair shares exactly 2 bottles. Guarantees solvability with the workspace bottle.
+- **Generation**: Color indices shuffled, bottle order shuffled, layers shuffled per bottle
 
 ### Implementation
 
@@ -43,10 +43,10 @@
 - Colored rectangles for sand layers (drawn bottom-to-top)
 - Green tint overlay on sealed bottles
 - Yellow highlight border on selected bottle
+- White outline on workspace bottle
 
 **Layout** (portrait-first):
-- 4 columns × 2 rows of small bottles at top, big bottle centered below
-- Dimensions auto-fit viewport with `_layout()` in `_ready()`
+- 4 columns × 2 rows, centered; dimensions auto-fit viewport with `_layout()` in `_ready()`
 
 ## Snow Survival
 - **POV**: Isometric

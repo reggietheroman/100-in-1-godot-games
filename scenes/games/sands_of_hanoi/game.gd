@@ -12,10 +12,9 @@ const COLORS := {
 }
 const COLOR_NAMES := ["red", "blue", "green", "yellow", "orange", "purple", "pink", "cyan"]
 
-const USE_COLORS := 6
+const USE_COLORS := 7
 const SMALL_CAPACITY := 4
-const BIG_CAPACITY := 8
-const INIT_LAYERS := 3
+const WORKSPACE := 7
 
 const BOTTLE_W := 56
 const BOTTLE_H := 160
@@ -78,20 +77,17 @@ func _ready():
 func _generate():
 	bottles.clear()
 
-	for i in 9:
-		var max_layers = SMALL_CAPACITY if i < 8 else BIG_CAPACITY
-		var w = BOTTLE_W if i < 8 else BOTTLE_W + 8
-		bottles.append(Bottle.new(max_layers, w))
+	for i in 8:
+		bottles.append(Bottle.new(SMALL_CAPACITY, BOTTLE_W))
 
 	var bibd := [
-		[0, 1, 2],
-		[0, 1, 3],
-		[0, 2, 4],
-		[0, 3, 5],
-		[1, 4, 5],
-		[1, 2, 5],
-		[2, 3, 4],
-		[3, 4, 5],
+		[3, 4, 5, 6],
+		[1, 2, 5, 6],
+		[1, 2, 3, 4],
+		[0, 2, 4, 6],
+		[0, 2, 3, 5],
+		[0, 1, 4, 5],
+		[0, 1, 3, 6],
 	]
 
 	var color_pool := COLOR_NAMES.slice(0, USE_COLORS)
@@ -101,11 +97,11 @@ func _generate():
 	indices.shuffle()
 
 	var order := []
-	for u in 8:
+	for u in 7:
 		order.append(u)
 	order.shuffle()
 
-	for bi in 8:
+	for bi in 7:
 		var block = bibd[order[bi]]
 		var layers := []
 		for c in block:
@@ -118,8 +114,7 @@ func _generate():
 func _layout():
 	var vp := get_viewport_rect().size
 	var grid_w := SMALL_COLS * BOTTLE_W + (SMALL_COLS - 1) * COL_GAP
-	var rows_h := 2 * BOTTLE_H + ROW_GAP
-	var total_h := rows_h + ROW_GAP + BOTTLE_H
+	var total_h := 2 * BOTTLE_H + ROW_GAP
 
 	var ox := maxf(0.0, (vp.x - grid_w) / 2)
 	var oy := maxf(0.0, (vp.y - total_h) / 2)
@@ -131,12 +126,6 @@ func _layout():
 				ox + col * (BOTTLE_W + COL_GAP),
 				oy + row * (BOTTLE_H + ROW_GAP)
 			)
-
-	var big = bottles[8]
-	big.rect.position = Vector2(
-		(vp.x - big.rect.size.x) / 2,
-		oy + rows_h + ROW_GAP
-	)
 
 
 func _draw():
@@ -166,6 +155,9 @@ func _draw_bottle(i: int):
 
 	if b.sealed:
 		draw_rect(r, Color(0, 1, 0, 0.12))
+
+	if i == WORKSPACE:
+		draw_rect(r, Color(1, 1, 1, 0.35), false, 2.0)
 
 	if i == selected:
 		draw_rect(r, Color(1, 1, 0, 0.45), false, 3.0)
@@ -244,7 +236,7 @@ func _pour(from: int, to: int, seal: bool = true) -> bool:
 
 
 func _check_win():
-	for i in 8:
+	for i in 7:
 		if not bottles[i].sealed:
 			return
 	won = true
