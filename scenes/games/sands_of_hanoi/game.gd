@@ -1,166 +1,47 @@
 extends Node2D
 
-const COLORS := {
-	"red": Color(0.90, 0.18, 0.15),
-	"blue": Color(0.15, 0.42, 0.92),
-	"green": Color(0.12, 0.82, 0.28),
-	"yellow": Color(0.96, 0.86, 0.08),
-	"orange": Color(0.96, 0.54, 0.08),
-	"purple": Color(0.72, 0.18, 0.88),
-	"pink": Color(0.96, 0.38, 0.64),
-	"cyan": Color(0.08, 0.82, 0.92),
-}
-const COLOR_NAMES := ["red", "blue", "green", "yellow", "orange", "purple", "pink", "cyan"]
-
-const USE_COLORS := 7
-const SMALL_CAPACITY := 4
-const WORKSPACE := 7
-
-const BOTTLE_W := 56
-const BOTTLE_H := 160
-const LAYER_GAP := 1
-const COL_GAP := 14
-const ROW_GAP := 30
-const PAD := 4
-const SMALL_COLS := 4
-
-
-class Bottle:
-	var layers: Array
-	var max_layers: int
-	var rect: Rect2
-	var sealed: bool
-
-	func _init(p_max: int, w: int):
-		max_layers = p_max
-		rect = Rect2(Vector2.ZERO, Vector2(w, BOTTLE_H))
-		layers = []
-		sealed = false
-
-	func top_color() -> String:
-		return "" if layers.is_empty() else layers[-1]
-
-	func is_full() -> bool:
-		return layers.size() >= max_layers
-
-	func is_empty() -> bool:
-		return layers.is_empty()
-
-	func check_seal():
-		if not is_full():
-			return
-		var first = layers[0]
-		for l in layers:
-			if l != first:
-				return
-		sealed = true
-
-
 var bottles: Array
 var selected := -1
 var moves := 0
 var won := false
 
 @onready var back_btn: Button = $CanvasLayer/BackButton
+@onready var reset_btn: Button = $CanvasLayer/ResetButton
 @onready var move_lbl: Label = $CanvasLayer/MoveLabel
 @onready var win_lbl: Label = $CanvasLayer/WinLabel
 @onready var tap_lbl: Label = $CanvasLayer/TapLabel
 
 
 func _ready():
-	_generate()
+	bottles = SandsPuzzleGenerator.generate()
 	_layout()
 	queue_redraw()
 	back_btn.pressed.connect(_on_back)
-
-
-func _generate():
-	bottles.clear()
-
-	for i in 8:
-		bottles.append(Bottle.new(SMALL_CAPACITY, BOTTLE_W))
-
-	var bibd := [
-		[3, 4, 5, 6],
-		[1, 2, 5, 6],
-		[1, 2, 3, 4],
-		[0, 2, 4, 6],
-		[0, 2, 3, 5],
-		[0, 1, 4, 5],
-		[0, 1, 3, 6],
-	]
-
-	var color_pool := COLOR_NAMES.slice(0, USE_COLORS)
-	var indices := []
-	for u in USE_COLORS:
-		indices.append(u)
-	indices.shuffle()
-
-	var order := []
-	for u in 7:
-		order.append(u)
-	order.shuffle()
-
-	for bi in 7:
-		var block = bibd[order[bi]]
-		var layers := []
-		for c in block:
-			layers.append(color_pool[indices[c]])
-		layers.shuffle()
-		bottles[bi].layers = layers
-		bottles[bi].check_seal()
+	reset_btn.pressed.connect(_on_reset)
 
 
 func _layout():
 	var vp := get_viewport_rect().size
-	var grid_w := SMALL_COLS * BOTTLE_W + (SMALL_COLS - 1) * COL_GAP
-	var total_h := 2 * BOTTLE_H + ROW_GAP
+	var grid_w := SandsConstants.SMALL_COLS * SandsConstants.BOTTLE_W + (SandsConstants.SMALL_COLS - 1) * SandsConstants.COL_GAP
+	var total_h := 2 * SandsConstants.BOTTLE_H + SandsConstants.ROW_GAP
 
 	var ox := maxf(0.0, (vp.x - grid_w) / 2)
 	var oy := maxf(0.0, (vp.y - total_h) / 2)
 
 	for row in 2:
-		for col in SMALL_COLS:
-			var i := row * SMALL_COLS + col
+		for col in SandsConstants.SMALL_COLS:
+			var i := row * SandsConstants.SMALL_COLS + col
 			bottles[i].rect.position = Vector2(
-				ox + col * (BOTTLE_W + COL_GAP),
-				oy + row * (BOTTLE_H + ROW_GAP)
+				ox + col * (SandsConstants.BOTTLE_W + SandsConstants.COL_GAP),
+				oy + row * (SandsConstants.BOTTLE_H + SandsConstants.ROW_GAP)
 			)
 
 
 func _draw():
 	var vp := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, vp), Color(0.08, 0.08, 0.11))
+	SandsDrawer.draw_background(self, vp)
 	for i in bottles.size():
-		_draw_bottle(i)
-
-
-func _draw_bottle(i: int):
-	var b := bottles[i] as Bottle
-	var r := b.rect
-
-	draw_rect(r, Color(0.75, 0.70, 0.60))
-
-	var inner := Rect2(
-		r.position.x + PAD, r.position.y + PAD,
-		r.size.x - PAD * 2.0, r.size.y - PAD * 2.0
-	)
-	draw_rect(inner, Color(0.12, 0.12, 0.15))
-
-	var layer_h := (inner.size.y - (b.max_layers - 1.0) * LAYER_GAP) / b.max_layers
-	for j in b.layers.size():
-		var c = COLORS[b.layers[j]]
-		var ly := inner.position.y + inner.size.y - (j + 1.0) * (layer_h + LAYER_GAP) + LAYER_GAP
-		draw_rect(Rect2(inner.position.x, ly, inner.size.x, layer_h), c)
-
-	if b.sealed:
-		draw_rect(r, Color(0, 1, 0, 0.12))
-
-	if i == WORKSPACE:
-		draw_rect(r, Color(1, 1, 1, 0.35), false, 2.0)
-
-	if i == selected:
-		draw_rect(r, Color(1, 1, 0, 0.45), false, 3.0)
+		SandsDrawer.draw_bottle(self, bottles[i] as Bottle, i, selected)
 
 
 func _unhandled_input(event):
@@ -245,4 +126,16 @@ func _check_win():
 
 
 func _on_back():
-	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
+	get_tree().change_scene_to_file("res://scenes/games/sands_of_hanoi/title.tscn")
+
+
+func _on_reset():
+	selected = -1
+	moves = 0
+	won = false
+	move_lbl.text = "Moves: 0"
+	tap_lbl.visible = true
+	win_lbl.visible = false
+	bottles = SandsPuzzleGenerator.generate()
+	_layout()
+	queue_redraw()
