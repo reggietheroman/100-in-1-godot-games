@@ -49,9 +49,15 @@
 - 4 columns × 2 rows, centered; dimensions auto-fit viewport with `_layout()` in `_ready()`
 
 ## Snow Survival
+- **Reference**: Clone of Pizza Ready
 - **POV**: Isometric
 - **Description**: TBD
 
 ## Pin Puzzles
 - **POV**: Flat 2D
+- **Description**: TBD
+
+## Throne Defender
+- **Reference**: Clone of [Thronefall](https://store.steampowered.com/app/2239150/Thronefall/)
+- **POV**: Top-down/isometric castle defense
 - **Description**: TBD
