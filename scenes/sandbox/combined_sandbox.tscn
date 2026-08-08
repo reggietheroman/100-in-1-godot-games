@@ -1,0 +1,240 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scenes/sandbox/combined_sandbox.gd" id="1"]
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/grid_map.gd" id="2"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/isometric_camera.tscn" id="3"]
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/enemy_spawner.gd" id="4"]
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/trigger_area.gd" id="5"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/player.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/enemy.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/joystick.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/trigger_area.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/projectile.tscn" id="10"]
+
+[node name="CombinedSandbox" type="Node3D"]
+script = ExtResource("1")
+projectile_scene = ExtResource("10")
+enemy_scene = ExtResource("7")
+
+[node name="GridMap" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Camera" parent="." instance=ExtResource("3")]
+
+[node name="Player" parent="." instance=ExtResource("6")]
+
+[node name="Zones" type="Node3D" parent="."]
+
+[node name="ZoneA" parent="Zones" instance=ExtResource("9")]
+position = Vector3(-2, 0.3, 2)
+area_size = Vector3(4, 2, 4)
+
+[node name="ZoneB" parent="Zones" instance=ExtResource("9")]
+position = Vector3(3, 0.3, -1)
+area_size = Vector3(4, 2, 4)
+
+[node name="ZoneC" parent="Zones" instance=ExtResource("9")]
+position = Vector3(-3, 0.3, -3)
+area_size = Vector3(4, 2, 4)
+
+[node name="Spawner" type="Node3D" parent="."]
+script = ExtResource("4")
+enemy_scene = ExtResource("7")
+auto_start = false
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="BackButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 36.0
+text = "Back to Menu"
+focus_mode = 0
+
+[node name="HitLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 44.0
+offset_right = -8.0
+offset_bottom = 64.0
+text = "Hits: 0"
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Panel" type="PanelContainer" parent="HUD"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 220.0
+offset_bottom = 462.0
+
+[node name="Controls" type="VBoxContainer" parent="HUD/Panel"]
+theme_override_constants/separation = 6
+
+[node name="StartButton" type="Button" parent="HUD/Panel/Controls"]
+text = "Start Waves"
+focus_mode = 0
+
+[node name="ResetButton" type="Button" parent="HUD/Panel/Controls"]
+text = "Reset"
+focus_mode = 0
+
+[node name="SetSpawnButton" type="Button" parent="HUD/Panel/Controls"]
+text = "Set Spawn Point"
+focus_mode = 0
+
+[node name="SetRallyButton" type="Button" parent="HUD/Panel/Controls"]
+text = "Set Rally Point"
+focus_mode = 0
+
+[node name="WaveCountLabel" type="Label" parent="HUD/Panel/Controls"]
+text = "Waves: 5"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="WaveCountSelector" type="HBoxContainer" parent="HUD/Panel/Controls"]
+
+[node name="WaveCountPrev" type="Button" parent="HUD/Panel/Controls/WaveCountSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "-"
+focus_mode = 0
+
+[node name="WaveCountValue" type="Label" parent="HUD/Panel/Controls/WaveCountSelector"]
+text = "5"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="WaveCountNext" type="Button" parent="HUD/Panel/Controls/WaveCountSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "+"
+focus_mode = 0
+
+[node name="EnemyCountLabel" type="Label" parent="HUD/Panel/Controls"]
+text = "Enemies / wave: 5"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="EnemyCountSelector" type="HBoxContainer" parent="HUD/Panel/Controls"]
+
+[node name="EnemyCountPrev" type="Button" parent="HUD/Panel/Controls/EnemyCountSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "-"
+focus_mode = 0
+
+[node name="EnemyCountValue" type="Label" parent="HUD/Panel/Controls/EnemyCountSelector"]
+text = "5"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="EnemyCountNext" type="Button" parent="HUD/Panel/Controls/EnemyCountSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "+"
+focus_mode = 0
+
+[node name="RampEveryLabel" type="Label" parent="HUD/Panel/Controls"]
+text = "Ramp +1 every: 3 waves"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="RampEverySelector" type="HBoxContainer" parent="HUD/Panel/Controls"]
+
+[node name="RampEveryPrev" type="Button" parent="HUD/Panel/Controls/RampEverySelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "-"
+focus_mode = 0
+
+[node name="RampEveryValue" type="Label" parent="HUD/Panel/Controls/RampEverySelector"]
+text = "3"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="RampEveryNext" type="Button" parent="HUD/Panel/Controls/RampEverySelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "+"
+focus_mode = 0
+
+[node name="Separator" type="HSeparator" parent="HUD/Panel/Controls"]
+
+[node name="AutoFireButton" type="Button" parent="HUD/Panel/Controls"]
+text = "Auto-Fire: OFF"
+focus_mode = 0
+
+[node name="FireRateLabel" type="Label" parent="HUD/Panel/Controls"]
+text = "Fire rate: 0.4s"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="FireRateSelector" type="HBoxContainer" parent="HUD/Panel/Controls"]
+
+[node name="FireRatePrev" type="Button" parent="HUD/Panel/Controls/FireRateSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "-"
+focus_mode = 0
+
+[node name="FireRateValue" type="Label" parent="HUD/Panel/Controls/FireRateSelector"]
+text = "0.4s"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="FireRateNext" type="Button" parent="HUD/Panel/Controls/FireRateSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "+"
+focus_mode = 0
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.92
+anchor_right = 0.5
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+text = "Configure, click Start Waves, then shoot enemies with Space/Fire"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="LogLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_top = 8.0
+offset_bottom = 28.0
+text = ""
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 0.9)
+theme_override_font_sizes/font_size = 14
+
+[node name="HintLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_top = 32.0
+offset_bottom = 52.0
+text = "Player (blue) + enemy waves (red) + trigger zones (green). Cyan = spawn, yellow = rally."
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 0.7)
+theme_override_font_sizes/font_size = 12
+
+[node name="FireButton" type="Button" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -150.0
+offset_right = -16.0
+offset_bottom = -16.0
+text = "FIRE"
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+
+[node name="Joystick" parent="HUD" instance=ExtResource("8")]
+visible_on_desktop = true

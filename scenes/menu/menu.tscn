@@ -25,9 +25,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 margin_left = -200.0
-margin_top = -120.0
+margin_top = -260.0
 margin_right = 200.0
-margin_bottom = 120.0
+margin_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
@@ -59,3 +59,40 @@ custom_minimum_size = Vector2(280, 44)
 text = "Pin Puzzles"
 size_flags_horizontal = 4
 custom_minimum_size = Vector2(280, 44)
+
+[node name="ThroneDefenderButton" type="Button" parent="Layout"]
+text = "Throne Defender"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 44)
+
+[node name="SandboxTitle" type="Label" parent="Layout"]
+text = "Dev Sandboxes"
+horizontal_alignment = 1
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.6, 0.6, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="SandboxPlayerButton" type="Button" parent="Layout"]
+text = "Sandbox: Player Movement"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxSpawnerButton" type="Button" parent="Layout"]
+text = "Sandbox: Enemy Spawner"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxTriggersButton" type="Button" parent="Layout"]
+text = "Sandbox: Trigger Areas"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxCombinedButton" type="Button" parent="Layout"]
+text = "Sandbox: Combined"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxShootingButton" type="Button" parent="Layout"]
+text = "Sandbox: Shooting"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)

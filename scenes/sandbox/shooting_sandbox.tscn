@@ -1,0 +1,103 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scenes/sandbox/shooting_sandbox.gd" id="1"]
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/grid_map.gd" id="2"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/isometric_camera.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/player.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/enemy.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/joystick.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/projectile.tscn" id="7"]
+
+[node name="ShootingSandbox" type="Node3D"]
+script = ExtResource("1")
+projectile_scene = ExtResource("7")
+enemy_scene = ExtResource("5")
+
+[node name="GridMap" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Camera" parent="." instance=ExtResource("3")]
+
+[node name="Player" parent="." instance=ExtResource("4")]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="BackButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 36.0
+text = "Back to Menu"
+focus_mode = 0
+
+[node name="HitLabel" type="Label" parent="HUD"]
+offset_left = 8.0
+offset_top = 8.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="ShootPanel" type="PanelContainer" parent="HUD"]
+offset_left = 8.0
+offset_top = 36.0
+offset_right = 212.0
+offset_bottom = 150.0
+
+[node name="ShootControls" type="VBoxContainer" parent="HUD/ShootPanel"]
+theme_override_constants/separation = 6
+
+[node name="AutoFireButton" type="Button" parent="HUD/ShootPanel/ShootControls"]
+text = "Auto-Fire: OFF"
+focus_mode = 0
+
+[node name="FireRateLabel" type="Label" parent="HUD/ShootPanel/ShootControls"]
+text = "Fire rate: 0.4s"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="FireRateSelector" type="HBoxContainer" parent="HUD/ShootPanel/ShootControls"]
+
+[node name="FireRatePrev" type="Button" parent="HUD/ShootPanel/ShootControls/FireRateSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "-"
+focus_mode = 0
+
+[node name="FireRateValue" type="Label" parent="HUD/ShootPanel/ShootControls/FireRateSelector"]
+text = "0.4s"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="FireRateNext" type="Button" parent="HUD/ShootPanel/ShootControls/FireRateSelector"]
+custom_minimum_size = Vector2(28, 0)
+text = "+"
+focus_mode = 0
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.92
+anchor_right = 0.5
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+text = "WASD/joystick to move — Space or Fire to shoot the nearest enemy"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="FireButton" type="Button" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -150.0
+offset_right = -16.0
+offset_bottom = -16.0
+text = "FIRE"
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+
+[node name="Joystick" parent="HUD" instance=ExtResource("6")]
+visible_on_desktop = true
