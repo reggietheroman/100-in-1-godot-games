@@ -170,7 +170,7 @@ func _random_free_tile() -> Vector3:
 
 
 func _on_back_pressed():
-	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
+	get_tree().change_scene_to_file("res://scenes/menu/sandbox_menu.tscn")
 
 
 func _refresh_hud():

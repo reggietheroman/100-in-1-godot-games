@@ -13,6 +13,7 @@ addon and exercised by playable sandboxes in `scenes/sandbox/`.
 6. Shooting: fire projectiles at the nearest enemy (Space/Fire, auto-fire, adjustable rate); projectiles are blocked by walls.
 7. Maps fill the camera's visible ground footprint, with boundary walls tracing the POV edge so everything stays on screen.
 8. Loot: enemies drop a collectible item on death (`enemy_mover.die()`); items support auto-pickup on contact and key-based pickup, with optional despawn timers. Shot enemies drop loot in the combined sandbox, and the player collects it (counter in the HUD).
+9. Currency: a wallet on the player accumulates currency from loot pickups; banks (deposit pads) on the map drain the wallet up to a per-pad capacity while the player stands on them (or on an activation action), showing a running `{name} deposited/capacity` label. The currency sandbox wires the full loop (waves → loot → wallet → banks of 10/25/50).
 
 ## Addon components (`addons/isometric_kit/`)
 
@@ -32,6 +33,10 @@ All components are driven by exported vars so each scene can tune behavior for d
 - `scripts/enemy_mover.gd` — additionally exports `loot_scene` (what the enemy drops) and `die()` drops it via `LootDrop` then frees the enemy.
 - `scenes/projectile.tscn` — `Area3D` + sphere mesh/collision.
 - `scenes/loot_item.tscn` — `Area3D` + gem mesh/collision; defaults to `Auto` pickup.
+- `scripts/currency_wallet.gd` — `Node3D` that tracks a currency balance. Exports `currency` (starting amount); `add_currency(n)` credits, `spend_currency(n)` clamps to the balance and returns what was spent. Emits `currency_changed(amount)`. Grouped `wallet`.
+- `scripts/currency_deposit.gd` — `Area3D` deposit pad. Exports `capacity`, `display_name`, `area_size`, `auto_activate` (default true: drains while the player stands on it; otherwise requires `activation_action`), `activation_action` (default `pickup`/E), `transfer_amount`/`transfer_interval` (per-tick size and spacing), `show_transfer_visuals` (flying coin per tick), pad colors. Drains the nearest `wallet` up to capacity in animated ticks (counts tick up/down instead of jumping); shows `{display_name} deposited/capacity` on a `Label3D`. Grouped `deposit`, emits `deposited_changed(deposited, capacity)`.
+- `scenes/currency_deposit.tscn` — `Area3D` + pad mesh/collision + floating `Label3D`.
+- `scenes/transfer_coin.tscn` — flat gold disc (CylinderMesh) that arcs up from above the player to the pad with a tumble on each transfer tick.
 
 ## Sandboxes (`scenes/sandbox/`)
 
@@ -46,15 +51,16 @@ isometric camera and on-screen hint labels.
 - `pickup_sandbox.tscn` — loot items scattered on the map: collect on contact (`Auto`) and on key press (`Key`).
 - `loot_spawn_sandbox.tscn` — spawn a pile of loot on click (LootDrop static helper).
 - `loot_drop_sandbox.tscn` — player shoots enemies, each drops a loot item; pickup counter in the HUD.
+- `currency_sandbox.tscn` — the full currency loop: wave enemies spawn and rally to a nearby point; killed enemies drop loot that becomes currency on pickup (wallet on the player); three banks with capacities 10/25/50 auto-drain the wallet while you stand on them (on-pad labels show `Bank d/c`). Kill via click or Space/Fire.
 
-All sandboxes are reachable from the main menu under "Dev Sandboxes".
+All sandboxes are reachable from the main menu via the "Dev Sandboxes" button (scenes/menu/sandbox_menu.tscn).
 
 ## Tests
 
-Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (72 checks) cover grid
+Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (90 checks) cover grid
 geometry/walls, footprint math, camera setup, spawner wave counts/ramp/restart, enemy
-reaching, trigger zones, projectile despawn, joystick vectors, player movement, and loot
-drops/pickups.
+reaching, trigger zones, projectile despawn, joystick vectors, player movement, loot
+drops/pickups, and currency wallet/deposit caps.
 Run with:
 
 ```

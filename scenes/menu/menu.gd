@@ -7,14 +7,7 @@ func _ready():
 	$Layout/SnowSurvivalButton.pressed.connect(_on_snow_survival_pressed)
 	$Layout/PinPuzzlesButton.pressed.connect(_on_pin_puzzles_pressed)
 	$Layout/ThroneDefenderButton.pressed.connect(_on_throne_defender_pressed)
-	$Layout/SandboxPlayerButton.pressed.connect(_on_sandbox_player_pressed)
-	$Layout/SandboxSpawnerButton.pressed.connect(_on_sandbox_spawner_pressed)
-	$Layout/SandboxTriggersButton.pressed.connect(_on_sandbox_triggers_pressed)
-	$Layout/SandboxCombinedButton.pressed.connect(_on_sandbox_combined_pressed)
-	$Layout/SandboxShootingButton.pressed.connect(_on_sandbox_shooting_pressed)
-	$Layout/SandboxLootPickupButton.pressed.connect(_on_sandbox_loot_pickup_pressed)
-	$Layout/SandboxLootSpawnerButton.pressed.connect(_on_sandbox_loot_spawner_pressed)
-	$Layout/SandboxLootDropButton.pressed.connect(_on_sandbox_loot_drop_pressed)
+	$Layout/DevSandboxesButton.pressed.connect(_on_dev_sandboxes_pressed)
 
 
 func _on_zombie_math_pressed():
@@ -37,33 +30,5 @@ func _on_throne_defender_pressed():
 	get_tree().change_scene_to_file("res://scenes/games/throne_defender/title.tscn")
 
 
-func _on_sandbox_player_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/player_sandbox.tscn")
-
-
-func _on_sandbox_spawner_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/spawner_sandbox.tscn")
-
-
-func _on_sandbox_triggers_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/trigger_sandbox.tscn")
-
-
-func _on_sandbox_combined_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/combined_sandbox.tscn")
-
-
-func _on_sandbox_shooting_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/shooting_sandbox.tscn")
-
-
-func _on_sandbox_loot_pickup_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/pickup_sandbox.tscn")
-
-
-func _on_sandbox_loot_spawner_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/loot_spawn_sandbox.tscn")
-
-
-func _on_sandbox_loot_drop_pressed():
-	get_tree().change_scene_to_file("res://scenes/sandbox/loot_drop_sandbox.tscn")
+func _on_dev_sandboxes_pressed():
+	get_tree().change_scene_to_file("res://scenes/menu/sandbox_menu.tscn")

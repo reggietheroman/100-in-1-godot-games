@@ -24,6 +24,8 @@ inspector. Playable reference sandboxes live in `scenes/sandbox/`.
 | Projectile | `scenes/projectile.tscn` | `scripts/projectile.gd` | Flies toward a target, reports hits, blocked by walls |
 | Loot item | `scenes/loot_item.tscn` | `scripts/loot_item.gd` | Collectible pickup: `Auto`/`Key` modes, despawn timer, pickup effects; group `loot`, emits `picked_up` |
 | Loot drop | — | `scripts/loot_drop.gd` | Static helper that spawns a loot scene on the ground (used by `enemy_mover.die()`) |
+| Currency wallet | *(add as `Node3D`)* | `scripts/currency_wallet.gd` | Tracks a currency balance, `add_currency`/`spend_currency`; group `wallet` |
+| Currency deposit | `scenes/currency_deposit.tscn` | `scripts/currency_deposit.gd` | Pad that drains a wallet up to `capacity` in animated ticks (a coin arcs player→pad per unit), auto while standing or on `activation_action`, with a named `Label3D` total |
 
 ## Quick start
 
@@ -102,6 +104,30 @@ func _on_picked_up(item: Area3D, collector: Node3D):
 `loot_item.tscn` defaults to `Auto` mode (collects on contact). Switch to `Key`
 mode to require the `pickup` action, and set `despawn_time` for timed items.
 
+### Currency wiring
+
+```gdscript
+# A wallet tracks the player's balance. Add it as a child of the player node.
+wallet.add_currency(1)                      # e.g. when loot is picked up
+wallet.currency                             # current balance
+
+# A bank pad drains the wallet up to its capacity. By default it drains
+# automatically while the player stands on it (`auto_activate`); set
+# `auto_activate = false` to require pressing an activation action (default
+# "pickup", E). Transfers tick 1 unit at a time (`transfer_interval`, default
+# 0.07s) with a coin arcing from above the player down to the pad (visible even
+# when standing right on it), so the counts animate instead of jumping.
+var area := load("res://addons/isometric_kit/scenes/currency_deposit.tscn").instantiate()
+area.capacity = 10
+area.display_name = "Bank"
+area.deposited_changed.connect(func(deposited: int, capacity: int):
+    print("bank now holds %d/%d" % [deposited, capacity]))
+add_child(area)
+```
+
+The wallet self-registers in the `wallet` group so any deposit area can find it;
+loot feeds it through `picked_up` (each item carries a `value`).
+
 ### POV-filling map (fill the whole screen + boundary walls)
 
 ```gdscript
@@ -146,11 +172,12 @@ godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
 (Any command-line flag works; the runner prints a pass/fail summary and exits
 nonzero on failure.) Tests cover grid maps and walls, footprint math, the camera
 sizing/clip guard, spawner wave counts and ramp growth, enemy target reaching,
-trigger-area signals, projectile hits/walls/lifetime, joystick vector math, and
-loot drops/pickups.
+trigger-area signals, projectile hits/walls/lifetime, joystick vector math, loot
+drops/pickups, and currency wallet/deposit behavior.
 
 Reference sandboxes that exercise everything together (reachable from the main
-menu under "Dev Sandboxes"): `scenes/sandbox/combined_sandbox.tscn` (player +
-zones + waves + shooting + loot), plus focused ones — `pickup_sandbox.tscn`
-(collect on contact / on key), `loot_spawn_sandbox.tscn` (spawn a pile), and
-`loot_drop_sandbox.tscn` (enemies drop loot when shot).
+menu via the "Dev Sandboxes" button): `scenes/sandbox/combined_sandbox.tscn` (player +
+zones + waves + shooting + loot), `scenes/sandbox/currency_sandbox.tscn` (waves
+→ loot → currency → three deposit pads of 10/25/50), plus focused ones —
+`pickup_sandbox.tscn` (collect on contact / on key), `loot_spawn_sandbox.tscn`
+(spawn a pile), and `loot_drop_sandbox.tscn` (enemies drop loot when shot).

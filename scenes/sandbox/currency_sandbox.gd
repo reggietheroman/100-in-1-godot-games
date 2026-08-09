@@ -4,73 +4,91 @@ const VisibleFootprint := preload("res://addons/isometric_kit/scripts/visible_fo
 const ENEMY_SCENE := "res://addons/isometric_kit/scenes/enemy.tscn"
 const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
 const PROJECTILE_SCENE := "res://addons/isometric_kit/scenes/projectile.tscn"
+const DEPOSIT_SCENE := "res://addons/isometric_kit/scenes/currency_deposit.tscn"
 
 @export var play_width := 11.31
 @export var play_depth := 11.31
 @export var map_padding := 3
 @export var player_move_speed := 4.0
-@export var player_start := Vector3(0, 0.6, 0)
-@export var enemy_count := 4
+@export var wave_size := 5
+@export var wave_interval := 8.0
+@export var max_waves := 0
 @export var projectile_speed := 18.0
 @export var fire_interval := 0.4
 
+@export var area_capacities := [10, 25, 50]
+@export var deposit_offsets := [
+	Vector3(-3.2, 0, -3.2),
+	Vector3(3.2, 0, -3.2),
+	Vector3(0, 0, 3.2),
+]
+@export var spawn_offset := Vector3(-4.2, 0, 3.2)
+@export var rally_offset := Vector3(-4.2, 0, 1.0)
+
 const BOUNDARY_WALL_H := 1.5
 const TILE_Y := 0.6
-const MIN_PLAYER_DIST := 2.0
 
 var kills := 0
 var loot_collected := 0
 var _cooldown := 0.0
-var _boundary_pts: Array = []
+var _map_center := Vector3.ZERO
 
 @onready var grid: Node3D = $GridMap
 @onready var camera: Camera3D = $Camera
 @onready var player: CharacterBody3D = $Player
-@onready var hud: CanvasLayer = $HUD
+@onready var spawner: Node3D = $Spawner
+@onready var wallet: Node3D = $Player/CurrencyWallet
 
 
 func _ready():
 	camera.fit_size = Vector2(play_width, play_depth)
 	camera.setup()
-	_boundary_pts = VisibleFootprint.configure_map(grid, camera, map_padding, BOUNDARY_WALL_H)
+	VisibleFootprint.configure_map(grid, camera, map_padding, BOUNDARY_WALL_H)
 	grid.build()
+	_map_center = _compute_map_center()
 
 	player.move_speed = player_move_speed
-	player.position = player_start
+	player.position = _map_center
+
+	spawner.enemy_scene = load(ENEMY_SCENE)
+	spawner.spawn_point = _map_center + spawn_offset
+	spawner.rally_point = _map_center + rally_offset
+	spawner.wave_size = wave_size
+	spawner.wave_interval = wave_interval
+	spawner.max_waves = max_waves
+
+	for i in area_capacities.size():
+		var area = load(DEPOSIT_SCENE).instantiate()
+		area.name = "DepositArea%d" % (i + 1)
+		area.display_name = "Bank"
+		area.capacity = area_capacities[i]
+		area.position = _map_center + deposit_offsets[i]
+		add_child(area)
+		area.deposited_changed.connect(_on_deposited_changed)
+
 	$HUD/BackButton.pressed.connect(_on_back_pressed)
 	get_tree().node_added.connect(_on_node_added)
-	for i in enemy_count:
-		_spawn_enemy()
+	spawner.start()
 	_refresh_hud()
-	_set_status("Click or shoot (Space) an enemy to kill it — loot drops where it fell")
+	_set_status("Shoot/click enemies for loot, then stand on a bank to deposit your currency")
 
 
 func _process(delta):
 	_cooldown = maxf(_cooldown - delta, 0.0)
 
 
-func _spawn_enemy():
-	var enemy = load(ENEMY_SCENE).instantiate()
-	enemy.position = _random_free_tile()
-	enemy.loot_scene = load(LOOT_SCENE)
-	add_child(enemy)
-	enemy.target = enemy.global_position
-
-
-func _random_free_tile() -> Vector3:
-	for attempt in 1000:
-		var x := randi_range(0, grid.width - 1)
-		var z := randi_range(0, grid.depth - 1)
-		if grid.is_wall(x, z):
-			continue
-		var c := VisibleFootprint.tile_center(grid, x, z)
-		if not VisibleFootprint.inside(_boundary_pts, c):
-			continue
-		var pos := Vector3(c.x, TILE_Y, c.y)
-		if pos.distance_to(player.global_position) < MIN_PLAYER_DIST:
-			continue
-		return pos
-	return Vector3(0, TILE_Y, 0)
+func _compute_map_center() -> Vector3:
+	var pts := VisibleFootprint.ground_footprint(camera)
+	var min_x := INF
+	var max_x := -INF
+	var min_z := INF
+	var max_z := -INF
+	for p in pts:
+		min_x = minf(min_x, p.x)
+		max_x = maxf(max_x, p.x)
+		min_z = minf(min_z, p.y)
+		max_z = maxf(max_z, p.y)
+	return Vector3((min_x + max_x) / 2.0, TILE_Y, (min_z + max_z) / 2.0)
 
 
 func _unhandled_input(event):
@@ -138,24 +156,32 @@ func _kill_at_click(screen_pos: Vector2):
 func _kill(enemy: Node3D):
 	kills += 1
 	enemy.die()
-	_spawn_enemy()
 	_refresh_hud()
 
 
 func _on_node_added(node: Node):
-	if node.get("pickup_mode") == null:
-		return
-	if not node.picked_up.is_connected(_on_loot_picked_up):
+	if node.has_method("die") and node.loot_scene == null:
+		node.loot_scene = load(LOOT_SCENE)
+	if node.get("pickup_mode") != null and not node.picked_up.is_connected(_on_loot_picked_up):
 		node.picked_up.connect(_on_loot_picked_up)
 
 
-func _on_loot_picked_up(_item: Node3D):
+func _on_loot_picked_up(item: Node3D):
+	var value: int = item.value if item.get("value") != null else 1
 	loot_collected += 1
+	wallet.add_currency(value)
 	_refresh_hud()
-	_set_status("Collected the dropped loot")
+	_set_status("Collected %+d currency" % value)
+
+
+func _on_deposited_changed(deposited: int, capacity: int):
+	_refresh_hud()
+	if deposited >= capacity:
+		_set_status("Bank full (%d/%d)" % [deposited, capacity])
 
 
 func _refresh_hud():
+	($HUD/CurrencyLabel as Label).text = "Currency: %d" % wallet.currency
 	($HUD/KillsLabel as Label).text = "Kills: %d" % kills
 	($HUD/LootLabel as Label).text = "Loot collected: %d" % loot_collected
 

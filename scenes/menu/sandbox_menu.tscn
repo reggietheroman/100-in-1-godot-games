@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menu/sandbox_menu.gd" id="1"]
+
+[node name="SandboxMenu" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.094, 0.094, 0.125, 1)
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Layout" type="VBoxContainer" parent="Scroll"]
+custom_minimum_size = Vector2(360, 0)
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Title" type="Label" parent="Scroll/Layout"]
+text = "Dev Sandboxes"
+horizontal_alignment = 1
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 24
+
+[node name="SandboxPlayerButton" type="Button" parent="Scroll/Layout"]
+text = "Player Movement"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxSpawnerButton" type="Button" parent="Scroll/Layout"]
+text = "Enemy Spawner"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxTriggersButton" type="Button" parent="Scroll/Layout"]
+text = "Trigger Areas"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxCombinedButton" type="Button" parent="Scroll/Layout"]
+text = "Combined"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxShootingButton" type="Button" parent="Scroll/Layout"]
+text = "Shooting"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxLootPickupButton" type="Button" parent="Scroll/Layout"]
+text = "Loot Pickup"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxLootSpawnerButton" type="Button" parent="Scroll/Layout"]
+text = "Loot Spawner"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxLootDropButton" type="Button" parent="Scroll/Layout"]
+text = "Loot Drops"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxCurrencyButton" type="Button" parent="Scroll/Layout"]
+text = "Currency"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="BackButton" type="Button" parent="Scroll/Layout"]
+text = "Back to Main Menu"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 40)

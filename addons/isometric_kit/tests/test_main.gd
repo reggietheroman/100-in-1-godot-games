@@ -27,8 +27,10 @@ const PROJECTILE_SCENE := "res://addons/isometric_kit/scenes/projectile.tscn"
 const GRID_SCRIPT := "res://addons/isometric_kit/scripts/grid_map.gd"
 const SPAWNER_SCRIPT := "res://addons/isometric_kit/scripts/enemy_spawner.gd"
 const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
+const DEPOSIT_SCENE := "res://addons/isometric_kit/scenes/currency_deposit.tscn"
 const LootItem := preload("res://addons/isometric_kit/scripts/loot_item.gd")
 const LootDrop := preload("res://addons/isometric_kit/scripts/loot_drop.gd")
+const CurrencyWallet := preload("res://addons/isometric_kit/scripts/currency_wallet.gd")
 
 
 func _initialize():
@@ -68,6 +70,7 @@ func _run() -> void:
 	await _test_joystick()
 	await _test_player()
 	await _test_loot()
+	await _test_currency()
 	print("--------------------------------")
 	print("tests passed: %d, failed: %d" % [_passed, _failed])
 	quit(0 if _failed == 0 else 1)
@@ -498,3 +501,77 @@ func _test_loot() -> void:
 	root.add_child(enemy2)
 	enemy2.die()
 	_check(enemy2.is_queued_for_deletion(), "die() without loot_scene still removes the enemy")
+
+
+func _test_currency() -> void:
+	print("== currency ==")
+	var wallet: Node3D = CurrencyWallet.new()
+	root.add_child(wallet)
+	var changes: Array = []
+	wallet.currency_changed.connect(func(a): changes.append(a))
+	_check(wallet.is_in_group("wallet"), "wallet is in the 'wallet' group")
+
+	wallet.add_currency(5)
+	_check(wallet.currency == 5 and changes == [5], "add_currency credits the wallet and emits")
+	_check(wallet.spend_currency(100) == 5 and wallet.currency == 0,
+		"spend_currency clamps to the balance and returns what was spent")
+	_check(changes == [5, 0], "spend_currency emits currency_changed")
+	wallet.add_currency(20)
+	_check(wallet.currency == 20, "wallet holds balance across operations")
+
+	var area = load(DEPOSIT_SCENE).instantiate()
+	area.capacity = 10
+	area.show_transfer_visuals = false
+	root.add_child(area)
+	_check(area.is_in_group("deposit"), "deposit area is in the 'deposit' group")
+	_check(area.auto_activate, "deposit drains automatically by default")
+	var deposits: Array = []
+	area.deposited_changed.connect(func(d, c): deposits.append([d, c]))
+
+	Input.action_press("pickup")
+	for i in 3:
+		await process_frame
+	Input.action_release("pickup")
+	_check(deposits.is_empty(), "no deposit while the player is off the pad")
+	_check(wallet.currency == 20, "wallet untouched when the player is not on the pad")
+
+	var pad_player := Node3D.new()
+	pad_player.add_to_group("player")
+	area._on_body_entered(pad_player)
+	var t0 := Time.get_ticks_msec()
+	while area.deposited < 10 and Time.get_ticks_msec() - t0 < 4000:
+		await process_frame
+	_check(deposits.size() > 1, "auto drain ticks over time instead of one instant transfer")
+	_check(deposits[-1] == [10, 10], "auto drain reaches the capacity")
+	_check(wallet.currency == 10, "wallet decreased by the deposit")
+	_check(area.deposited == 10, "area holds the deposited currency")
+	_check(area.label != null and area.label.text == "Deposit 10/10", "area label shows name and deposited/capacity")
+
+	area._on_body_exited(pad_player)
+	pad_player.free()
+
+	var area_manual = load(DEPOSIT_SCENE).instantiate()
+	area_manual.capacity = 25
+	area_manual.display_name = "Bank"
+	area_manual.auto_activate = false
+	area_manual.show_transfer_visuals = false
+	root.add_child(area_manual)
+	var pad_player2 := Node3D.new()
+	pad_player2.add_to_group("player")
+	area_manual._on_body_entered(pad_player2)
+	for i in 3:
+		await process_frame
+	_check(area_manual.deposited == 0, "manual pad does not drain without the activation action")
+	Input.action_press("pickup")
+	t0 = Time.get_ticks_msec()
+	while area_manual.deposited < 10 and Time.get_ticks_msec() - t0 < 4000:
+		await process_frame
+	Input.action_release("pickup")
+	_check(area_manual.deposited == 10, "manual pad drains on activation while the player is on it")
+	_check(wallet.currency == 0, "wallet fully drained into the manual pad")
+	_check(area_manual.label.text == "Bank 10/25", "label uses display_name for a partial deposit")
+	area_manual._on_body_exited(pad_player2)
+	pad_player2.free()
+	area_manual.free()
+	area.free()
+	wallet.free()

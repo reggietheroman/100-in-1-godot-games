@@ -6,7 +6,7 @@ Godot 4.7 project — collection of 5 mini-games.
 
 ```
 scenes/
-├── menu/          — main menu (games + dev sandboxes)
+├── menu/          — main menu (games + "Dev Sandboxes" button), sandbox_menu.tscn lists all sandboxes
 ├── sandbox/       — playable 3D dev sandboxes
 └── games/
     ├── zombie_math/
@@ -35,10 +35,12 @@ Reusable 3D components driven by exported vars; sandboxes in `scenes/sandbox/` e
 - **Projectile** (`scripts/projectile.gd`): `Area3D` that flies along a `direction` and emits `hit(enemy)` on collision with `enemy`-group bodies; despawns on `wall`-group bodies.
 - **Loot item** (`scripts/loot_item.gd`): `Area3D` collectible with `pickup_mode` (`Auto` contact / `Key` uses the `pickup` action), `despawn_time`, pickup effects. Grouped `loot`, emits `picked_up`.
 - **Loot drop** (`scripts/loot_drop.gd`): static helpers (`drop`, `for_enemy`) that place a loot scene on the ground; `enemy_mover.die()` uses it when `loot_scene` is set.
+- **Currency wallet** (`scripts/currency_wallet.gd`): `Node3D` that tracks a currency balance with `add_currency`/`spend_currency`; emits `currency_changed`. Grouped `wallet`.
+- **Currency deposit** (`scripts/currency_deposit.gd`): `Area3D` pad with `capacity` and a `Label3D` showing `{display_name} deposited/capacity`. Drains the wallet into the area while the player stands on it (`auto_activate`, default true) or on `activation_action` (default `pickup`/E) when auto is off. Transfers tick (`transfer_amount` units every `transfer_interval` seconds) with a coin arcing up from above the player to the pad, so counts animate instead of jumping. Grouped `deposit`, emits `deposited_changed`.
 
 ### Sandboxes (`scenes/sandbox/`)
 
-Each is a `Node3D` with exported dev config applied in `_ready()`, an isometric camera, and HUD hint labels. All are reachable from the main menu under "Dev Sandboxes".
+Each is a `Node3D` with exported dev config applied in `_ready()`, an isometric camera, and HUD hint labels. All are reachable from the main menu via the "Dev Sandboxes" button (scenes/menu/sandbox_menu.tscn).
 
 - `player_sandbox` — player movement, tune `player_move_speed`.
 - `spawner_sandbox` — enemy waves; spawn/rally point click-to-place + wave/enemy count UI.
@@ -48,6 +50,7 @@ Each is a `Node3D` with exported dev config applied in `_ready()`, an isometric 
 - `pickup_sandbox` — loot items scattered on the map: collect on contact (Auto) and on key press (Key).
 - `loot_spawn_sandbox` — spawn a pile of loot on click (LootDrop static helper).
 - `loot_drop_sandbox` — player shoots enemies, each drops a loot item; pickup counter in the HUD.
+- `currency_sandbox` — the currency loop: wave enemies rally to a nearby point; killed enemies drop loot that becomes currency on pickup; three banks (deposit pads, capacities 10/25/50) with on-pad labels auto-drain the wallet while you stand on them.
 
 WASD/arrow input actions (`move_left/right/up/down`), `shoot` (Space), and `pickup` (E) are defined in `project.godot`.
 
@@ -87,5 +90,5 @@ Design specs live in `.opencode/plans/002-game-designs.md`. Keep the plan in syn
   godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
   ```
 
-  Expect `tests passed: 72, failed: 0`. Tests must await a `process_frame` before
+  Expect `tests passed: 90, failed: 0`. Tests must await a `process_frame` before
   instancing scene nodes, since nodes added before the first frame never enter the tree.

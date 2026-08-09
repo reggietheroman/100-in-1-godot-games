@@ -135,7 +135,7 @@ func _refresh_ui():
 
 
 func _on_back_pressed():
-	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
+	get_tree().change_scene_to_file("res://scenes/menu/sandbox_menu.tscn")
 
 
 func _set_status(text: String):

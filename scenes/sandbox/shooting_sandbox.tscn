@@ -30,7 +30,7 @@ offset_left = -140.0
 offset_top = 8.0
 offset_right = -8.0
 offset_bottom = 36.0
-text = "Back to Menu"
+text = "Back to Sandboxes"
 focus_mode = 0
 
 [node name="HitLabel" type="Label" parent="HUD"]
