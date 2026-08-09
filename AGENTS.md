@@ -76,3 +76,11 @@ Design specs live in `.opencode/plans/002-game-designs.md`. Keep the plan in syn
 ## Commands
 
 - The `.godot` directory is excluded from version control.
+- Run the headless Isometric Kit test suite:
+
+  ```
+  godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
+  ```
+
+  Expect `tests passed: 61, failed: 0`. Tests must await a `process_frame` before
+  instancing scene nodes, since nodes added before the first frame never enter the tree.

@@ -1,9 +1,22 @@
+## Floating touch/mouse joystick.
+##
+## Captures screen touches (or mouse when `visible_on_desktop` is true) and
+## exposes a normalized movement vector in `vector` (length ≤ 1). Add the
+## `joystick.tscn` scene to a HUD `CanvasLayer`; the player controller picks it
+## up automatically via the "joystick" group. When hidden on desktop the
+## joystick stops consuming input entirely.
 extends Control
 
+## Max distance from the start point; input is clamped to this radius.
 @export var radius := 60.0
+
+## Visual size of the knob.
 @export var knob_radius := 30.0
+
+## Show the joystick on desktop too (normally mouse users drive with WASD).
 @export var visible_on_desktop := false
 
+## Normalized movement vector, updated while active and reset on release.
 var vector := Vector2.ZERO
 
 var _active := false
@@ -25,6 +38,8 @@ func _ready():
 
 
 func _unhandled_input(event):
+	if not visible:
+		return
 	if event is InputEventScreenTouch:
 		_handle_touch(event)
 	elif event is InputEventScreenDrag:

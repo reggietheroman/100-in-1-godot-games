@@ -41,6 +41,22 @@ isometric camera and on-screen hint labels.
 
 All sandboxes are reachable from the main menu under "Dev Sandboxes".
 
+## Tests
+
+Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (61 checks) cover grid
+geometry/walls, footprint math, camera setup, spawner wave counts/ramp/restart, enemy
+reaching, trigger zones, projectile despawn, joystick vectors, and player movement.
+Run with:
+
+```
+godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
+```
+
+Notes for the test harness: await a `process_frame` before instancing scene nodes (nodes
+added before the first frame never enter the tree), and use real-time waits (`create_timer`
+/ msec-capped `await process_frame` loops) instead of fixed physics-frame counts since
+headless timing varies.
+
 ## Input
 
 `move_left/right/up/down` actions (WASD + arrow keys) and `shoot` (Space) are defined in `project.godot` and

@@ -1,3 +1,15 @@
+## Static helpers for building a grid map that fills the camera's view.
+##
+## These functions compute the camera's visible ground footprint (the polygon
+## where the viewport corners project onto the y=0 plane) and configure a
+## `grid_map.gd` to cover it, marking boundary tiles as walls so the play area
+## fills the whole screen. No instance needed — call the statics directly:
+## `VisibleFootprint.configure_map(grid, camera, padding, wall_height)` before
+## `grid.build()`.
+##
+## Important: Godot 4's `camera.size` is the *full* ortho frustum height, so the
+## true half-height is `size / 2`. Using `size` as a half-extent is the classic
+## mistake this helper avoids.
 class_name VisibleFootprint
 extends RefCounted
 
@@ -69,6 +81,7 @@ static func inside(points: Array, p: Vector2) -> bool:
 	return true
 
 
+## World position (as Vector2 x/z) of the center of tile (x, z) on the grid.
 static func tile_center(grid: Node, x: int, z: int) -> Vector2:
 	return Vector2(x - grid.width / 2.0 + 0.5, z - grid.depth / 2.0 + 0.5)
 

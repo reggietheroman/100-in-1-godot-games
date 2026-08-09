@@ -1,8 +1,21 @@
+## Camera-relative player controller.
+##
+## A `CharacterBody3D` driven by WASD/arrows (or a "joystick"-group joystick when
+## it reports movement). Movement is relative to the active camera's orientation,
+## so it works with any isometric camera. Add the `player.tscn` scene to a game;
+## the script self-registers in the "player" group.
 extends CharacterBody3D
 
+## Horizontal movement speed in units/second.
 @export var move_speed := 4.0
+
+## Acceleration toward the target velocity (higher = snappier).
 @export var acceleration := 12.0
+
+## Capsule tint. The player shares its model with enemies, differentiated by color.
 @export var body_color := Color(0.2, 0.45, 1.0)
+
+## Optional joystick `Control`. If left unset, a "joystick"-group node is used.
 @export var joystick: Control
 
 @onready var mesh_instance: MeshInstance3D = $Body

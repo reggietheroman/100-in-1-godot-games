@@ -1,17 +1,32 @@
+## Enemy that walks to a target point and idles there.
+##
+## A `CharacterBody3D` that moves horizontally toward `target` each physics
+## frame and emits `reached_rally_point` when it gets within `stop_distance`.
+## Self-registers in the "enemy" group (so trigger areas, projectiles, and
+## spawners can find it). Gravity is applied so it falls onto a ground plane.
 extends CharacterBody3D
 
+## Horizontal movement speed in units/second.
 @export var move_speed := 3.0
+
+## Capsule tint. Enemies share the player model, differentiated by color.
 @export var body_color := Color(1.0, 0.2, 0.2)
+
+## Distance at which the target is considered reached.
 @export var stop_distance := 0.1
 
+## Emitted once the enemy gets within `stop_distance` of `target`.
+signal reached_rally_point
+
+## Point to walk to. Set this before the node starts processing (e.g. in the
+## spawner or right after instantiation).
 var target := Vector3.ZERO
+
 var reached_rally := false
 
 @onready var mesh_instance: MeshInstance3D = $Body
 
 var gravity := 20.0
-
-signal reached_rally_point
 
 
 func _ready():
