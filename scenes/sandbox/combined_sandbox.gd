@@ -1,7 +1,9 @@
 extends Node3D
 
 const VisibleFootprint := preload("res://addons/isometric_kit/scripts/visible_footprint.gd")
-const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
+const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_coin.tscn"
+const BUILD_SITE_SCENE := "res://addons/isometric_kit/scenes/build_site.tscn"
+const TOWER_SCENE := "res://addons/isometric_kit/scenes/tower.tscn"
 
 @export var play_width := 11.31
 @export var play_depth := 11.31
@@ -14,6 +16,57 @@ const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
 @export var fire_interval := 0.4
 @export var projectile_scene: PackedScene
 @export var enemy_scene: PackedScene
+@export var starting_currency := 0
+
+## Four pre-defined Rapid tower build areas, one per map corner. Each pad's
+## structure points toward the center so the towers cover the spawn → rally
+## diagonal the enemies walk.
+@export var site_configs := [
+	{
+		"name": "Rapid Tower",
+		"stages": [15, 30, 50],
+		"offset": Vector3(-3, 0, -3),
+		"structure_offset": Vector3(2.5, 0, 2.5),
+		"tower_level_stats": [
+			{"fire_interval": 0.3, "range": 4.5, "damage": 1},
+			{"fire_interval": 0.24, "range": 5.5, "damage": 2},
+			{"fire_interval": 0.18, "range": 6.5, "damage": 3},
+		],
+	},
+	{
+		"name": "Rapid Tower",
+		"stages": [15, 30, 50],
+		"offset": Vector3(3, 0, -3),
+		"structure_offset": Vector3(-2.5, 0, 2.5),
+		"tower_level_stats": [
+			{"fire_interval": 0.3, "range": 4.5, "damage": 1},
+			{"fire_interval": 0.24, "range": 5.5, "damage": 2},
+			{"fire_interval": 0.18, "range": 6.5, "damage": 3},
+		],
+	},
+	{
+		"name": "Rapid Tower",
+		"stages": [15, 30, 50],
+		"offset": Vector3(-3, 0, 3),
+		"structure_offset": Vector3(2.5, 0, -2.5),
+		"tower_level_stats": [
+			{"fire_interval": 0.3, "range": 4.5, "damage": 1},
+			{"fire_interval": 0.24, "range": 5.5, "damage": 2},
+			{"fire_interval": 0.18, "range": 6.5, "damage": 3},
+		],
+	},
+	{
+		"name": "Rapid Tower",
+		"stages": [15, 30, 50],
+		"offset": Vector3(3, 0, 3),
+		"structure_offset": Vector3(-2.5, 0, -2.5),
+		"tower_level_stats": [
+			{"fire_interval": 0.3, "range": 4.5, "damage": 1},
+			{"fire_interval": 0.24, "range": 5.5, "damage": 2},
+			{"fire_interval": 0.18, "range": 6.5, "damage": 3},
+		],
+	},
+]
 
 const WAVE_CHOICES := [1, 2, 3, 4, 5, 0]
 const ENEMY_CHOICES := [1, 2, 3, 4, 5, 0]
@@ -29,13 +82,13 @@ var enemy_count_index := 4
 var ramp_every := 3
 var picking: String = ""
 var hits := 0
-var loot_collected := 0
 var auto_fire := false
 var _cooldown := 0.0
 
 @onready var grid: Node3D = $GridMap
 @onready var camera: Camera3D = $Camera
 @onready var player: CharacterBody3D = $Player
+@onready var wallet: Node3D = $Player/CurrencyWallet
 @onready var spawner: Node3D = $Spawner
 @onready var hud: CanvasLayer = $HUD
 @onready var start_button: Button = $HUD/Panel/Controls/StartButton
@@ -52,6 +105,7 @@ func _ready():
 
 	player.move_speed = player_move_speed
 	player.position = player_start
+	wallet.currency = starting_currency
 
 	spawner.spawn_point = spawn_point
 	spawner.rally_point = rally_point
@@ -59,6 +113,25 @@ func _ready():
 	spawner.wave_spawned.connect(_on_wave_spawned)
 	spawner.all_enemies_reached_rally.connect(_on_all_reached)
 	spawner.waves_finished.connect(_on_waves_finished)
+
+	for cfg in site_configs:
+		var site = load(BUILD_SITE_SCENE).instantiate()
+		site.name = "Site_%s" % cfg["name"]
+		site.display_name = cfg["name"]
+		var stages: Array[int] = []
+		for v in cfg["stages"]:
+			stages.append(v)
+		site.stages = stages
+		site.tower_scene = load(TOWER_SCENE)
+		var level_stats: Array[Dictionary] = []
+		for s in cfg["tower_level_stats"]:
+			level_stats.append(s)
+		site.tower_level_stats = level_stats
+		site.structure_offset = cfg["structure_offset"]
+		site.position = cfg["offset"]
+		add_child(site)
+		site.leveled_up.connect(_on_leveled_up.bind(cfg["name"]))
+		site.completed.connect(_on_completed.bind(cfg["name"]))
 
 	$HUD/BackButton.pressed.connect(_on_back_pressed)
 	$HUD/Panel/Controls/StartButton.pressed.connect(_on_start_pressed)
@@ -77,17 +150,12 @@ func _ready():
 	$HUD/Panel/Controls/FireRateSelector/FireRateNext.pressed.connect(_on_fire_rate_next)
 	get_tree().node_added.connect(_on_node_added)
 
-	for zone_node in $Zones.get_children():
-		zone_node.player_entered.connect(_on_zone_event.bind(zone_node, "player entered"))
-		zone_node.player_exited.connect(_on_zone_event.bind(zone_node, "player left"))
-		zone_node.enemy_entered.connect(_on_zone_event.bind(zone_node, "enemy entered"))
-		zone_node.enemy_exited.connect(_on_zone_event.bind(zone_node, "enemy left"))
-
 	_refresh_count_labels()
 	_set_markers()
 	_refresh_hud()
 	_refresh_fire_ui()
-	_set_status("Configure, click Start Waves, then shoot enemies with Space/Fire — they drop loot to collect")
+	wallet.currency_changed.connect(_on_currency_changed)
+	_set_status("Configure, click Start Waves, then shoot enemies with Space/Fire — collect coins, stand on a pad to build a Rapid tower")
 
 
 func _process(delta):
@@ -319,9 +387,11 @@ func _on_node_added(node: Node):
 		node.picked_up.connect(_on_loot_picked_up)
 
 
-func _on_loot_picked_up(_item: Node3D):
-	loot_collected += 1
+func _on_loot_picked_up(item: Node3D):
+	var value: int = item.value if item.get("value") != null else 1
+	wallet.add_currency(value)
 	_refresh_hud()
+	_set_status("Collected %+d currency" % value)
 
 
 func _on_auto_fire_pressed():
@@ -347,11 +417,19 @@ func _refresh_fire_ui():
 
 func _refresh_hud():
 	($HUD/HitLabel as Label).text = "Hits: %d" % hits
-	($HUD/LootLabel as Label).text = "Loot: %d" % loot_collected
+	($HUD/CurrencyLabel as Label).text = "Currency: %d" % wallet.currency
 
 
-func _on_zone_event(_zone: Area3D, zone_node: Area3D, event: String):
-	_log("%s: %s" % [zone_node.name, event])
+func _on_currency_changed(_amount: int):
+	_refresh_hud()
+
+
+func _on_leveled_up(level: int, site_name: String):
+	_set_status("%s grew to level %d" % [site_name, level])
+
+
+func _on_completed(site_name: String):
+	_set_status("%s complete — its payment pad was removed" % site_name)
 
 
 func _on_wave_spawned(wave: int, count: int):
@@ -369,7 +447,3 @@ func _on_waves_finished():
 
 func _set_status(text: String):
 	($HUD/StatusLabel as Label).text = text
-
-
-func _log(msg: String):
-	($HUD/LogLabel as Label).text = msg
