@@ -58,7 +58,7 @@ const CELEBRATION_SCENE := "res://addons/isometric_kit/scenes/celebration.tscn"
 @export var transfer_amount := 1
 
 ## Seconds between transfer ticks (each coin flight).
-@export var transfer_interval := 0.07
+@export var transfer_interval := 0.12
 
 ## Spawn flying coins from the player to the pad on each tick.
 @export var show_transfer_visuals := true

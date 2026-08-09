@@ -36,7 +36,7 @@ const TransferCoinScene := preload("res://addons/isometric_kit/scenes/transfer_c
 @export var transfer_amount := 1
 
 ## Seconds between transfer ticks (how long each coin flight takes).
-@export var transfer_interval := 0.07
+@export var transfer_interval := 0.12
 
 ## Spawn a flying coin from the player to the pad on each tick.
 @export var show_transfer_visuals := true
