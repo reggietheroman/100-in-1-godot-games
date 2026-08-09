@@ -25,7 +25,9 @@ inspector. Playable reference sandboxes live in `scenes/sandbox/`.
 | Loot item | `scenes/loot_item.tscn` | `scripts/loot_item.gd` | Collectible pickup: `Auto`/`Key` modes, despawn timer, pickup effects; group `loot`, emits `picked_up` |
 | Loot drop | — | `scripts/loot_drop.gd` | Static helper that spawns a loot scene on the ground (used by `enemy_mover.die()`) |
 | Currency wallet | *(add as `Node3D`)* | `scripts/currency_wallet.gd` | Tracks a currency balance, `add_currency`/`spend_currency`; group `wallet` |
-| Currency deposit | `scenes/currency_deposit.tscn` | `scripts/currency_deposit.gd` | Pad that drains a wallet up to `capacity` in animated ticks (a coin arcs player→pad per unit), auto while standing or on `activation_action`, with a named `Label3D` total |
+| Currency deposit | `scenes/currency_deposit.tscn` | `scripts/currency_deposit.gd` | Pad that drains a wallet up to `capacity` in animated ticks (a coin arcs player→pad per unit, bumping the pad on landing; filling up pops + flashes the pad), auto while standing or on `activation_action`, with a named `Label3D` total; `paused` freezes transfers |
+| Build site | `scenes/build_site.tscn` | `scripts/build_site.gd` | Predefined area: a `currency_deposit` payment pad plus a structure beside it; dev-configured `stages` are each level's cost, paid in sequence (the pad resets to `0/{next}`), and the pad is removed at max level. Structure is one `structure_scene` instance per level (any 3D asset) or default box blocks. Every finished stage plays a celebration popup + confetti burst above it |
+| Celebration | `scenes/celebration.tscn` | `scripts/celebration.gd` | One-shot feedback popup: `celebrate(text, color)` plays a billboarded message that pops in, floats up and fades out, plus a `CPUParticles3D` confetti burst; frees itself when done |
 
 ## Quick start
 
@@ -128,6 +130,50 @@ add_child(area)
 The wallet self-registers in the `wallet` group so any deposit area can find it;
 loot feeds it through `picked_up` (each item carries a `value`).
 
+### Build site wiring
+
+```gdscript
+# A build site is a predefined area: stand on its pad to pay, and a structure
+# levels up beside it. The dev configures the structure and its cost; players
+# can only pay what's required.
+var site := load("res://addons/isometric_kit/scenes/build_site.tscn").instantiate()
+site.display_name = "Outpost"
+site.stages = [10, 25, 50]        # costs of levels 1/2/3, paid in sequence
+site.structure_offset = Vector3(3.5, 0, 0)
+# Optional: use a 3D asset instead of the default box blocks.
+# site.structure_scene = preload("res://models/crystal.glb")
+site.leveled_up.connect(func(level): print("Outpost reached level ", level))
+site.completed.connect(func(): print("Outpost fully built — pad removed"))
+add_child(site)
+```
+
+The payment pad is an embedded `currency_deposit` (auto-drains the wallet while
+the player stands on it, with the ticking coin arcs). Each stage is paid in
+sequence: reaching a stage's amount pops another structure instance in, recolors
+it, and resets the pad to `0/{next}` (so `0/10 → … → 0/25 → … → 0/50`); once the
+final stage is paid the pad is removed and only the structure remains. The
+structure is one `structure_scene` instance per level (any 3D asset: `.glb`,
+`.tscn`, ...) or the default stacked box blocks; set `structure_colors` to tint
+it per level (empty keeps an asset's own materials). Payment feels physical: each
+coin landing bumps the pad, filling a stage pops + flashes it, and after the
+first level is collected the pad pauses for a beat (`first_level_pause`) so the
+milestone lands. Every finished stage plays a `celebration` popup + confetti
+burst above the structure — the final one reads "Outpost Complete!" — so each
+upgrade feels like a win (disable via `celebration_enabled = false`). The site
+self-registers in the `build_site` group (its pad opts out of the `deposit`
+group).
+
+### Celebration wiring
+
+Use it standalone for any win/upgrade moment (level complete, wave cleared, ...):
+
+```gdscript
+var popup := preload("res://addons/isometric_kit/scenes/celebration.tscn").instantiate()
+popup.position = Vector3(0, 3, 0)
+add_child(popup)
+popup.celebrate("Wave cleared!", Color(1.0, 0.7, 0.2))   # frees itself when done
+```
+
 ### POV-filling map (fill the whole screen + boundary walls)
 
 ```gdscript
@@ -173,11 +219,13 @@ godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
 nonzero on failure.) Tests cover grid maps and walls, footprint math, the camera
 sizing/clip guard, spawner wave counts and ramp growth, enemy target reaching,
 trigger-area signals, projectile hits/walls/lifetime, joystick vector math, loot
-drops/pickups, and currency wallet/deposit behavior.
+drops/pickups, currency wallet/deposit behavior, and build-site stage level-ups.
 
 Reference sandboxes that exercise everything together (reachable from the main
 menu via the "Dev Sandboxes" button): `scenes/sandbox/combined_sandbox.tscn` (player +
 zones + waves + shooting + loot), `scenes/sandbox/currency_sandbox.tscn` (waves
-→ loot → currency → three deposit pads of 10/25/50), plus focused ones —
+→ loot → currency → three deposit pads of 10/25/50), `scenes/sandbox/build_sandbox.tscn`
+(start with 500 currency and build towers at three pads of different costs), plus
+focused ones —
 `pickup_sandbox.tscn` (collect on contact / on key), `loot_spawn_sandbox.tscn`
 (spawn a pile), and `loot_drop_sandbox.tscn` (enemies drop loot when shot).

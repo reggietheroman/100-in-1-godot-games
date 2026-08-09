@@ -34,9 +34,12 @@ All components are driven by exported vars so each scene can tune behavior for d
 - `scenes/projectile.tscn` — `Area3D` + sphere mesh/collision.
 - `scenes/loot_item.tscn` — `Area3D` + gem mesh/collision; defaults to `Auto` pickup.
 - `scripts/currency_wallet.gd` — `Node3D` that tracks a currency balance. Exports `currency` (starting amount); `add_currency(n)` credits, `spend_currency(n)` clamps to the balance and returns what was spent. Emits `currency_changed(amount)`. Grouped `wallet`.
-- `scripts/currency_deposit.gd` — `Area3D` deposit pad. Exports `capacity`, `display_name`, `area_size`, `auto_activate` (default true: drains while the player stands on it; otherwise requires `activation_action`), `activation_action` (default `pickup`/E), `transfer_amount`/`transfer_interval` (per-tick size and spacing), `show_transfer_visuals` (flying coin per tick), pad colors. Drains the nearest `wallet` up to capacity in animated ticks (counts tick up/down instead of jumping); shows `{display_name} deposited/capacity` on a `Label3D`. Grouped `deposit`, emits `deposited_changed(deposited, capacity)`.
+- `scripts/currency_deposit.gd` — `Area3D` deposit pad. Exports `capacity`, `display_name`, `area_size`, `auto_activate` (default true: drains while the player stands on it; otherwise requires `activation_action`), `activation_action` (default `pickup`/E), `transfer_amount`/`transfer_interval` (per-tick size and spacing), `show_transfer_visuals` (flying coin per tick + pad bumps on landing and a pop/flash when full), pad colors, `register_in_group` (default true; set false when embedded in another component). Drains the nearest `wallet` up to capacity in animated ticks (counts tick up/down instead of jumping); shows `{display_name} deposited/capacity` on a `Label3D`. `refresh()` re-applies label + pad tint after external `capacity` changes. `paused` (runtime) freezes transfers until cleared, used by `build_site` for a post-milestone beat. Grouped `deposit`, emits `deposited_changed(deposited, capacity)`.
+- `scripts/build_site.gd` — `Node3D` predefined build area. Exports `display_name`, `stages` (each level's cost, paid in sequence; e.g. `[10, 25, 50]` = pay 10 for level 1, then 25, then 50 for max), `payment_area_size`, `structure_offset` (where the structure sits beside the pad), `structure_scene` (optional 3D asset instantiated once per level; falls back to default `BoxMesh` blocks), `structure_colors` (tint per level; empty keeps an asset's own materials), `celebration_enabled` (plays a popup + confetti burst above the structure on every level-up, the final one reading "{display_name} Complete!"), `first_level_pause` (seconds the pad pauses after the first level is collected so the milestone lands; 0 disables), and pass-throughs `auto_activate`/`transfer_amount`/`transfer_interval`/`show_transfer_visuals`. Embeds a `currency_deposit` pad (auto-drains the wallet while the player stands on it); when a stage's amount is paid a structure instance pops in, the structure recolors, a celebration plays, the pad pauses (first level only), and the pad resets to `0/{next}`; once the final stage is paid the pad is freed and `completed` fires. Structure/stages/colors are dev-configured. Grouped `build_site`, emits `leveled_up(level)`/`completed`.
 - `scenes/currency_deposit.tscn` — `Area3D` + pad mesh/collision + floating `Label3D`.
 - `scenes/transfer_coin.tscn` — flat gold disc (CylinderMesh) that arcs up from above the player to the pad with a tumble on each transfer tick.
+- `scenes/build_site.tscn` — `Node3D` + embedded `currency_deposit` payment pad (`register_in_group = false`) + foundation slab, with one structure segment per `stages` entry (a `structure_scene` instance or a default box block) created in `_ready`.
+- `scripts/celebration.gd` / `scenes/celebration.tscn` — one-shot feedback popup: `celebrate(text, color)` pops in a billboarded `Label3D` message (back-eased scale-in) that floats up and fades out, plus a `CPUParticles3D` confetti burst tinted `color`; the node frees itself when done (`rise`/`hold_time` tune it). Used by `build_site` on every level-up.
 
 ## Sandboxes (`scenes/sandbox/`)
 
@@ -52,15 +55,19 @@ isometric camera and on-screen hint labels.
 - `loot_spawn_sandbox.tscn` — spawn a pile of loot on click (LootDrop static helper).
 - `loot_drop_sandbox.tscn` — player shoots enemies, each drops a loot item; pickup counter in the HUD.
 - `currency_sandbox.tscn` — the full currency loop: wave enemies spawn and rally to a nearby point; killed enemies drop loot that becomes currency on pickup (wallet on the player); three banks with capacities 10/25/50 auto-drain the wallet while you stand on them (on-pad labels show `Bank d/c`). Kill via click or Space/Fire.
+- `build_sandbox.tscn` — the building loop: start with 500 currency; three dev-configured build sites (Outpost `[10, 25, 50]`, Barracks `[15, 35]`, Keep `[20, 40, 80]`). Standing on a pad pays coins (ticking coin arcs) and a tower of blocks grows beside it; every level-up fires a celebration popup + confetti, and the pad is removed once a site reaches its final stage.
 
 All sandboxes are reachable from the main menu via the "Dev Sandboxes" button (scenes/menu/sandbox_menu.tscn).
 
 ## Tests
 
-Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (90 checks) cover grid
+Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (116 checks) cover grid
 geometry/walls, footprint math, camera setup, spawner wave counts/ramp/restart, enemy
 reaching, trigger zones, projectile despawn, joystick vectors, player movement, loot
-drops/pickups, and currency wallet/deposit caps.
+drops/pickups, currency wallet/deposit caps (including the pad `paused` state),
+build-site stage level-ups (tower blocks, pad removal at max level,
+structure_scene segments, first-level pause), and the celebration popup (spawns
+on level-up, confetti burst, disabled flag).
 Run with:
 
 ```

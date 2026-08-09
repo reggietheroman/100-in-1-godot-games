@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/celebration.gd" id="1"]
+
+[node name="Celebration" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Label" type="Label3D" parent="."]
+position = Vector3(0, -0.4, 0)
+billboard = 1
+font_size = 120
+pixel_size = 0.006
+outline_size = 12
+outline_modulate = Color(0, 0, 0, 0.85)
+
+[node name="Confetti" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 24
+lifetime = 1.1
+one_shot = true
+explosiveness = 1
+spread = 55.0
+initial_velocity_min = 2.0
+initial_velocity_max = 5.0
+gravity = Vector3(0, -7, 0)
+scale_amount_min = 0.35
+scale_amount_max = 0.8
+emission_shape = 1
+emission_sphere_radius = 0.35

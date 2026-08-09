@@ -4,11 +4,14 @@
 ## wallet in the "wallet" group into the area, up to `capacity`. Transfers are
 ## not instant: every `transfer_interval` seconds `transfer_amount` units move
 ## and a small coin flies from the player to the pad, so the wallet and pad
-## counts tick up/down with a visible "paying" feel. Draining is automatic while
-## a player stands on the pad when `auto_activate` is true, or requires pressing
-## `activation_action` otherwise. A `Label3D` above the pad shows the running
-## total (`Bank 0/10`, then `Bank 10/10` when full). The pad highlights while
-## the player stands on it and glows when full.
+## counts tick up/down with a visible "paying" feel. Each coin landing bumps the
+## pad, and filling up plays a punchy pop + flash + label bump. Draining is
+## automatic while a player stands on the pad when `auto_activate` is true, or
+## requires pressing `activation_action` otherwise. A `Label3D` above the pad
+## shows the running total (`Bank 0/10`, then `Bank 10/10` when full). The pad
+## highlights while the player stands on it and glows when full. `paused`
+## freezes transfers until cleared (used by `build_site` for a post-milestone
+## beat).
 extends Area3D
 
 const TransferCoinScene := preload("res://addons/isometric_kit/scenes/transfer_coin.tscn")
@@ -47,15 +50,28 @@ const TransferCoinScene := preload("res://addons/isometric_kit/scenes/transfer_c
 ## Pad tint once the area is full.
 @export var full_color := Color(1.0, 0.8, 0.2, 0.55)
 
+## When true, the pad self-registers in the "deposit" group. Set to false when
+## the pad is embedded in a larger component (e.g. `build_site`) so it doesn't
+## pollute the group.
+@export var register_in_group := true
+
 ## Emitted when currency is deposited: current total and the capacity.
 signal deposited_changed(deposited: int, capacity: int)
 
 ## Currency currently held by this area.
 var deposited := 0
 
+## When true, the pad stops draining until unpaused. Used by owning components
+## (e.g. `build_site`) to hold payments for a beat after a milestone so the
+## collection lands before the next stage starts accepting coins.
+var paused := false
+
 var _player_inside := false
 var _active := false
 var _tick_timer := 0.0
+var _pulse_tween: Tween
+var _flash_tween: Tween
+var _label_tween: Tween
 
 @onready var label: Label3D = $Label
 @onready var visual: MeshInstance3D = $Visual
@@ -63,7 +79,8 @@ var _tick_timer := 0.0
 
 
 func _ready():
-	add_to_group("deposit")
+	if register_in_group:
+		add_to_group("deposit")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	_apply_size()
@@ -71,7 +88,23 @@ func _ready():
 	_refresh_label()
 
 
+## Re-apply the label and pad tint from the current state (deposited vs
+## capacity, player inside). Call after changing `capacity` or colors so the pad
+## doesn't keep a stale "full" tint.
+func refresh():
+	_refresh_label()
+	if deposited >= capacity:
+		_set_color(full_color)
+	elif _player_inside:
+		_set_color(active_color)
+	else:
+		_set_color(inactive_color)
+
+
 func _process(delta):
+	if paused:
+		_tick_timer = 0.0
+		return
 	if not _player_inside:
 		_active = false
 		_tick_timer = 0.0
@@ -101,9 +134,15 @@ func _transfer_tick() -> bool:
 	if spent <= 0:
 		return false
 	deposited += spent
+	var collected := deposited >= capacity
 	_refresh_label()
 	_spawn_transfer_visual()
-	if deposited >= capacity:
+	if show_transfer_visuals:
+		if collected:
+			_collect_pulse()
+		else:
+			_pulse_pad(1.05, 0.12)
+	if collected:
 		_set_color(full_color)
 	deposited_changed.emit(deposited, capacity)
 	return true
@@ -167,7 +206,39 @@ func _refresh_label():
 	label.text = "%s%d/%d" % [prefix, deposited, capacity]
 
 
+## Small pad bump so each coin landing feels physical. The stronger `_collect_pulse`
+## fires instead when the pad fills up.
+func _pulse_pad(target: float, duration: float):
+	if visual == null:
+		return
+	if _pulse_tween:
+		_pulse_tween.kill()
+	_pulse_tween = visual.create_tween()
+	_pulse_tween.tween_property(visual, "scale", Vector3(target, 1.0, target), duration * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_pulse_tween.tween_property(visual, "scale", Vector3.ONE, duration * 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## A punchy "collected!" moment when the pad reaches capacity: a big pad pop,
+## a white flash settling to the full color, and the counter label bumping.
+func _collect_pulse():
+	_pulse_pad(1.18, 0.4)
+	if visual != null and visual.material_override != null:
+		if _flash_tween:
+			_flash_tween.kill()
+		_flash_tween = create_tween()
+		_flash_tween.tween_property(visual.material_override, "albedo_color", Color(1, 1, 1, 0.9), 0.06)
+		_flash_tween.tween_property(visual.material_override, "albedo_color", full_color, 0.3)
+	if label != null:
+		if _label_tween:
+			_label_tween.kill()
+		_label_tween = label.create_tween()
+		_label_tween.tween_property(label, "scale", Vector3(1.35, 1.35, 1.35), 0.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_label_tween.tween_property(label, "scale", Vector3.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _set_color(color: Color):
+	if _flash_tween:
+		_flash_tween.kill()
 	if visual == null:
 		return
 	if visual.material_override == null:

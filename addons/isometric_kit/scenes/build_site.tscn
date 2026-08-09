@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/build_site.gd" id="1"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/currency_deposit.tscn" id="2"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_foundation"]
+size = Vector3(1.8, 0.2, 1.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_foundation"]
+resource_local_to_scene = true
+albedo_color = Color(0.55, 0.55, 0.6, 0.7)
+transparency = 1
+
+[node name="BuildSite" type="Node3D"]
+script = ExtResource("1")
+
+[node name="PaymentPad" parent="." instance=ExtResource("2")]
+register_in_group = false
+
+[node name="Structure" type="Node3D" parent="."]
+
+[node name="Foundation" type="MeshInstance3D" parent="Structure"]
+position = Vector3(0, 0.1, 0)
+mesh = SubResource("BoxMesh_foundation")
+material_override = SubResource("StandardMaterial3D_foundation")

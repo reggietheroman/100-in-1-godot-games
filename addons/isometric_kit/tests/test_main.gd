@@ -28,6 +28,8 @@ const GRID_SCRIPT := "res://addons/isometric_kit/scripts/grid_map.gd"
 const SPAWNER_SCRIPT := "res://addons/isometric_kit/scripts/enemy_spawner.gd"
 const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
 const DEPOSIT_SCENE := "res://addons/isometric_kit/scenes/currency_deposit.tscn"
+const BUILD_SITE_SCENE := "res://addons/isometric_kit/scenes/build_site.tscn"
+const CELEBRATION_SCENE := "res://addons/isometric_kit/scenes/celebration.tscn"
 const LootItem := preload("res://addons/isometric_kit/scripts/loot_item.gd")
 const LootDrop := preload("res://addons/isometric_kit/scripts/loot_drop.gd")
 const CurrencyWallet := preload("res://addons/isometric_kit/scripts/currency_wallet.gd")
@@ -71,6 +73,7 @@ func _run() -> void:
 	await _test_player()
 	await _test_loot()
 	await _test_currency()
+	await _test_build_site()
 	print("--------------------------------")
 	print("tests passed: %d, failed: %d" % [_passed, _failed])
 	quit(0 if _failed == 0 else 1)
@@ -573,5 +576,121 @@ func _test_currency() -> void:
 	area_manual._on_body_exited(pad_player2)
 	pad_player2.free()
 	area_manual.free()
+
+	var area_paused = load(DEPOSIT_SCENE).instantiate()
+	area_paused.capacity = 10
+	area_paused.show_transfer_visuals = false
+	root.add_child(area_paused)
+	wallet.add_currency(10)
+	var pad_player3 := Node3D.new()
+	pad_player3.add_to_group("player")
+	area_paused._on_body_entered(pad_player3)
+	t0 = Time.get_ticks_msec()
+	while area_paused.deposited == 0 and Time.get_ticks_msec() - t0 < 4000:
+		await process_frame
+	_check(area_paused.deposited > 0, "pad starts draining while the player stands on it")
+	var frozen: int = area_paused.deposited
+	area_paused.paused = true
+	for i in 5:
+		await process_frame
+	_check(area_paused.deposited == frozen, "paused pad stops draining")
+	area_paused.paused = false
+	t0 = Time.get_ticks_msec()
+	while area_paused.deposited < 10 and Time.get_ticks_msec() - t0 < 4000:
+		await process_frame
+	_check(area_paused.deposited == 10, "pad resumes draining after unpausing")
+	area_paused._on_body_exited(pad_player3)
+	pad_player3.free()
+	area_paused.free()
 	area.free()
+	wallet.free()
+
+
+func _test_build_site() -> void:
+	print("== build_site ==")
+	var wallet: Node3D = CurrencyWallet.new()
+	root.add_child(wallet)
+	wallet.add_currency(200)
+
+	var site = load(BUILD_SITE_SCENE).instantiate()
+	site.show_transfer_visuals = false
+	root.add_child(site)
+	_check(site.is_in_group("build_site"), "build site is in the 'build_site' group")
+	var pad: Area3D = site.pad
+	_check(not pad.is_in_group("deposit"), "build site payment pad is not in the 'deposit' group")
+	_check(site.level == 0 and pad.capacity == 10, "site starts at level 0 targeting its first stage")
+	_check(pad.label != null and pad.label.text == "Build Site 0/10", "pad label shows site name and first stage target")
+
+	var levels: Array = []
+	var done: Array = []
+	site.leveled_up.connect(func(l): levels.append(l))
+	site.completed.connect(func(): done.append(true))
+
+	var pad_player := Node3D.new()
+	pad_player.add_to_group("player")
+	pad._on_body_entered(pad_player)
+	var t0 := Time.get_ticks_msec()
+	while site.level < 1 and Time.get_ticks_msec() - t0 < 4000:
+		await process_frame
+	_check(site.level == 1 and levels == [1], "level 1 after paying the first stage (10)")
+	_check(pad.capacity == 25, "pad targets the next stage after leveling up")
+	_check(pad.label.text == "Build Site 0/25", "label resets to the next stage cost after leveling up")
+	_check(site.structure.get_node_or_null("Celebration") != null, "a celebration popup spawns on each level-up")
+	_check(pad.paused, "payment pad pauses after the first level is collected")
+	t0 = Time.get_ticks_msec()
+	while pad.paused and Time.get_ticks_msec() - t0 < 3000:
+		await process_frame
+	_check(not pad.paused, "payment pad resumes after the first-level pause")
+
+	t0 = Time.get_ticks_msec()
+	while site.level < 2 and Time.get_ticks_msec() - t0 < 4000:
+		await process_frame
+	_check(site.level == 2 and levels == [1, 2], "level 2 after paying the second stage (25 more)")
+	_check(pad.label.text == "Build Site 0/50", "label resets again after the second stage")
+
+	t0 = Time.get_ticks_msec()
+	while done.is_empty() and Time.get_ticks_msec() - t0 < 6000:
+		await process_frame
+	await process_frame
+	_check(site.level == 3, "site reaches the max level (3 stages)")
+	_check(not done.is_empty(), "completed emitted at max level")
+	_check(site.get_node_or_null("PaymentPad") == null, "payment pad is removed at max level")
+	_check(wallet.currency == 115, "wallet paid 10 + 25 + 50 across the stages")
+	t0 = Time.get_ticks_msec()
+	while site._segments[2].scale != Vector3.ONE and Time.get_ticks_msec() - t0 < 2000:
+		await process_frame
+	_check(site._segments[0].scale == Vector3.ONE, "structure block 1 is visible at max level")
+	_check(site._segments[2].scale == Vector3.ONE, "structure block 3 is visible at max level")
+
+	var custom := PackedScene.new()
+	var custom_root := MeshInstance3D.new()
+	custom_root.mesh = CylinderMesh.new()
+	custom.pack(custom_root)
+	var site2 = load(BUILD_SITE_SCENE).instantiate()
+	var stages2: Array[int] = [5, 10]
+	site2.stages = stages2
+	var colors2: Array[Color] = []
+	site2.structure_colors = colors2
+	site2.structure_scene = custom
+	site2.show_transfer_visuals = false
+	root.add_child(site2)
+	_check(site2._segments.size() == 2, "one structure instance created per stage")
+	_check((site2._segments[0] as MeshInstance3D).mesh is CylinderMesh, "structure_scene replaces the default box segments")
+	site2.free()
+
+	site.celebration_enabled = false
+	var before_count: int = site.structure.get_children().size()
+	site._celebrate(1)
+	_check(site.structure.get_children().size() == before_count, "no celebration when celebration_enabled is false")
+	site.celebration_enabled = true
+
+	var celebration = load(CELEBRATION_SCENE).instantiate()
+	root.add_child(celebration)
+	celebration.celebrate("Outpost Level 2!", Color(1, 0.7, 0.2))
+	_check(celebration.label.text == "Outpost Level 2!", "celebration label shows the passed message")
+	_check(celebration.particles.emitting, "celebration confetti starts emitting on celebrate")
+	celebration.queue_free()
+
+	pad_player.free()
+	site.free()
 	wallet.free()
