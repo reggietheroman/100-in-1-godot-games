@@ -6,6 +6,8 @@
 ## spawners can find it). Gravity is applied so it falls onto a ground plane.
 extends CharacterBody3D
 
+const LootDrop := preload("res://addons/isometric_kit/scripts/loot_drop.gd")
+
 ## Horizontal movement speed in units/second.
 @export var move_speed := 3.0
 
@@ -14,6 +16,10 @@ extends CharacterBody3D
 
 ## Distance at which the target is considered reached.
 @export var stop_distance := 0.1
+
+## Loot scene dropped when this enemy dies (see `die()`). Leave unset for
+## enemies that drop nothing.
+@export var loot_scene: PackedScene
 
 ## Emitted once the enemy gets within `stop_distance` of `target`.
 signal reached_rally_point
@@ -62,3 +68,13 @@ func _apply_color():
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = body_color
 	mesh_instance.material_override = mat
+
+
+## Kills the enemy: drops its configured `loot_scene` at its position (if set)
+## and removes it from the scene. Call this instead of `queue_free()` when the
+## enemy should leave loot behind.
+func die():
+	var parent := get_parent()
+	if loot_scene != null and parent != null:
+		LootDrop.spawn(loot_scene, global_position, parent)
+	queue_free()

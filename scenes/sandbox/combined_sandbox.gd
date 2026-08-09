@@ -1,6 +1,7 @@
 extends Node3D
 
 const VisibleFootprint := preload("res://addons/isometric_kit/scripts/visible_footprint.gd")
+const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
 
 @export var play_width := 11.31
 @export var play_depth := 11.31
@@ -28,6 +29,7 @@ var enemy_count_index := 4
 var ramp_every := 3
 var picking: String = ""
 var hits := 0
+var loot_collected := 0
 var auto_fire := false
 var _cooldown := 0.0
 
@@ -73,6 +75,7 @@ func _ready():
 	$HUD/Panel/Controls/AutoFireButton.pressed.connect(_on_auto_fire_pressed)
 	$HUD/Panel/Controls/FireRateSelector/FireRatePrev.pressed.connect(_on_fire_rate_prev)
 	$HUD/Panel/Controls/FireRateSelector/FireRateNext.pressed.connect(_on_fire_rate_next)
+	get_tree().node_added.connect(_on_node_added)
 
 	for zone_node in $Zones.get_children():
 		zone_node.player_entered.connect(_on_zone_event.bind(zone_node, "player entered"))
@@ -84,7 +87,7 @@ func _ready():
 	_set_markers()
 	_refresh_hud()
 	_refresh_fire_ui()
-	_set_status("Configure, click Start Waves, then shoot enemies with Space/Fire")
+	_set_status("Configure, click Start Waves, then shoot enemies with Space/Fire — they drop loot to collect")
 
 
 func _process(delta):
@@ -304,9 +307,21 @@ func _nearest_enemy() -> Node3D:
 
 func _on_projectile_hit(enemy: Node3D):
 	hits += 1
-	enemy.queue_free()
+	enemy.die()
 	_refresh_hud()
 	_set_status("Hit! %d total hits" % hits)
+
+
+func _on_node_added(node: Node):
+	if node.has_method("die") and node.loot_scene == null:
+		node.loot_scene = load(LOOT_SCENE)
+	if node.get("pickup_mode") != null and not node.picked_up.is_connected(_on_loot_picked_up):
+		node.picked_up.connect(_on_loot_picked_up)
+
+
+func _on_loot_picked_up(_item: Node3D):
+	loot_collected += 1
+	_refresh_hud()
 
 
 func _on_auto_fire_pressed():
@@ -332,6 +347,7 @@ func _refresh_fire_ui():
 
 func _refresh_hud():
 	($HUD/HitLabel as Label).text = "Hits: %d" % hits
+	($HUD/LootLabel as Label).text = "Loot: %d" % loot_collected
 
 
 func _on_zone_event(_zone: Area3D, zone_node: Area3D, event: String):

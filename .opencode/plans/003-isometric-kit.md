@@ -12,6 +12,7 @@ addon and exercised by playable sandboxes in `scenes/sandbox/`.
 5. Player and enemies share the same model, differentiated by color (blue = player, red = enemy).
 6. Shooting: fire projectiles at the nearest enemy (Space/Fire, auto-fire, adjustable rate); projectiles are blocked by walls.
 7. Maps fill the camera's visible ground footprint, with boundary walls tracing the POV edge so everything stays on screen.
+8. Loot: enemies drop a collectible item on death (`enemy_mover.die()`); items support auto-pickup on contact and key-based pickup, with optional despawn timers. Shot enemies drop loot in the combined sandbox, and the player collects it (counter in the HUD).
 
 ## Addon components (`addons/isometric_kit/`)
 
@@ -26,7 +27,11 @@ All components are driven by exported vars so each scene can tune behavior for d
 - `scripts/visible_footprint.gd` — `class_name VisibleFootprint`, static helpers (`configure_map`, `ground_footprint`, `inside`, `tile_center`, `is_boundary_wall`) that size a grid to the camera's visible ground footprint and mark boundary walls around it. `camera.size` is the *full* ortho frustum height in Godot 4, so the true half-height is `size / 2`.
 - `scripts/joystick.gd` — floating touch joystick `Control`. Exports `radius`, `knob_radius`, `visible_on_desktop`.
 - `scripts/projectile.gd` — `Area3D` projectile. Moves along `direction` at `speed`, frees after `lifetime`, emits `hit(enemy)` when it collides with a `enemy`-group body; despawns on `wall`-group bodies.
+- `scripts/loot_item.gd` — `Area3D` collectible. Exports `pickup_mode` (`Auto` collect on contact / `Key` requires the `pickup` action), `despawn_time`, `pickup_sound`, `pickup_particles`. Grouped `loot`, emits `picked_up(item, collector)`.
+- `scripts/loot_drop.gd` — `class_name LootDrop`, static helper `drop(item_scene, pos)` that places a loot scene on the ground.
+- `scripts/enemy_mover.gd` — additionally exports `loot_scene` (what the enemy drops) and `die()` drops it via `LootDrop` then frees the enemy.
 - `scenes/projectile.tscn` — `Area3D` + sphere mesh/collision.
+- `scenes/loot_item.tscn` — `Area3D` + gem mesh/collision; defaults to `Auto` pickup.
 
 ## Sandboxes (`scenes/sandbox/`)
 
@@ -36,16 +41,20 @@ isometric camera and on-screen hint labels.
 - `player_sandbox.tscn` — player movement, tune `player_move_speed`.
 - `spawner_sandbox.tscn` — enemy waves, tune `spawn_point`/`rally_point`/`wave_size`/`wave_interval`.
 - `trigger_sandbox.tscn` — three trigger zones logging player/enemy enter/exit events.
-- `combined_sandbox.tscn` — player + trigger zones + configurable wave spawner + shooting all together. Configure spawn/rally points (click to place), wave count, and enemies per wave via the panel (1–5, then ∞); Start Waves, then shoot with Space/Fire (auto-fire and fire rate controls included). In ∞ mode the spawner ramps from 1 enemy per wave, +1 every N waves (configurable). Shots kill enemies permanently; waves refill the field.
+- `combined_sandbox.tscn` — player + trigger zones + configurable wave spawner + shooting + loot all together. Configure spawn/rally points (click to place), wave count, and enemies per wave via the panel (1–5, then ∞); Start Waves, then shoot with Space/Fire (auto-fire and fire rate controls included). In ∞ mode the spawner ramps from 1 enemy per wave, +1 every N waves (configurable). Shots kill enemies permanently and drop loot the player collects (Loot counter in the HUD); waves refill the field.
 - `shooting_sandbox.tscn` — player shoots projectiles toward the nearest enemy; collisions remove the enemy and respawn one. Space / Fire button, auto-fire toggle, and adjustable fire rate (0.1–3.0s). The map is built to fill the whole camera POV (footprint computed from the camera frustum) and boundary walls trace the POV edge, keeping player/enemies on screen and blocking projectiles.
+- `pickup_sandbox.tscn` — loot items scattered on the map: collect on contact (`Auto`) and on key press (`Key`).
+- `loot_spawn_sandbox.tscn` — spawn a pile of loot on click (LootDrop static helper).
+- `loot_drop_sandbox.tscn` — player shoots enemies, each drops a loot item; pickup counter in the HUD.
 
 All sandboxes are reachable from the main menu under "Dev Sandboxes".
 
 ## Tests
 
-Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (61 checks) cover grid
+Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (72 checks) cover grid
 geometry/walls, footprint math, camera setup, spawner wave counts/ramp/restart, enemy
-reaching, trigger zones, projectile despawn, joystick vectors, and player movement.
+reaching, trigger zones, projectile despawn, joystick vectors, player movement, and loot
+drops/pickups.
 Run with:
 
 ```
@@ -59,5 +68,5 @@ headless timing varies.
 
 ## Input
 
-`move_left/right/up/down` actions (WASD + arrow keys) and `shoot` (Space) are defined in `project.godot` and
+`move_left/right/up/down` actions (WASD + arrow keys), `shoot` (Space), and `pickup` (E) are defined in `project.godot` and
 shared by all games/sandboxes.

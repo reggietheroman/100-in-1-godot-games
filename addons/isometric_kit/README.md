@@ -14,7 +14,7 @@ inspector. Playable reference sandboxes live in `scenes/sandbox/`.
 | Component | Scene | Script | What it does |
 | --- | --- | --- | --- |
 | Player | `scenes/player.tscn` | `scripts/player_controller.gd` | WASD/arrow or joystick movement, camera-relative, group `player` |
-| Enemy | `scenes/enemy.tscn` | `scripts/enemy_mover.gd` | Walks to a `target` and idles, group `enemy`, emits `reached_rally_point` |
+| Enemy | `scenes/enemy.tscn` | `scripts/enemy_mover.gd` | Walks to a `target` and idles, group `enemy`, emits `reached_rally_point`; `die()` drops its `loot_scene` |
 | Spawner | *(add as `Node3D`)* | `scripts/enemy_spawner.gd` | Spawns waves of enemies spawn→rally; optional ramp growth |
 | Trigger area | `scenes/trigger_area.tscn` | `scripts/trigger_area.gd` | Reports player/enemy enter/exit events |
 | Grid map | *(add as `Node3D`)* | `scripts/grid_map.gd` | Checkerboard floor + blocking walls |
@@ -22,13 +22,16 @@ inspector. Playable reference sandboxes live in `scenes/sandbox/`.
 | Footprint | — | `scripts/visible_footprint.gd` | Sizes a grid to fill the camera POV + boundary walls |
 | Joystick | `scenes/joystick.tscn` | `scripts/joystick.gd` | Floating touch joystick |
 | Projectile | `scenes/projectile.tscn` | `scripts/projectile.gd` | Flies toward a target, reports hits, blocked by walls |
+| Loot item | `scenes/loot_item.tscn` | `scripts/loot_item.gd` | Collectible pickup: `Auto`/`Key` modes, despawn timer, pickup effects; group `loot`, emits `picked_up` |
+| Loot drop | — | `scripts/loot_drop.gd` | Static helper that spawns a loot scene on the ground (used by `enemy_mover.die()`) |
 
 ## Quick start
 
 1. Add the `isometric_kit` folder to your project's `addons/` and enable it in
    **Project Settings → Plugins**.
-2. Define input actions `move_left/right/up/down` (WASD + arrows) and `shoot`
-   (Space) in **Project Settings → Input Map** (see `project.godot`).
+2. Define input actions `move_left/right/up/down` (WASD + arrows), `shoot`
+   (Space), and `pickup` (E) in **Project Settings → Input Map** (see
+   `project.godot`).
 3. Build a scene:
    - `GridMap` (script `grid_map.gd`) — set `width`/`depth`, call `build()`.
    - `IsometricCamera` — either set `map` to the grid (auto-fit) or `fit_size`;
@@ -80,6 +83,25 @@ func _fire():
     p.hit.connect(func(hit_enemy): hit_enemy.queue_free())
 ```
 
+### Loot wiring
+
+```gdscript
+const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
+
+enemy.loot_scene = load(LOOT_SCENE)   # what this enemy drops on death
+enemy.die()                           # drops loot at its feet, then frees
+
+var loot := LOOT_SCENE.instantiate()  # or spawn loot directly anywhere
+loot.picked_up.connect(_on_picked_up)
+add_child(loot)
+
+func _on_picked_up(item: Area3D, collector: Node3D):
+    print("collector got ", item.get_script().resource_path)
+```
+
+`loot_item.tscn` defaults to `Auto` mode (collects on contact). Switch to `Key`
+mode to require the `pickup` action, and set `despawn_time` for timed items.
+
 ### POV-filling map (fill the whole screen + boundary walls)
 
 ```gdscript
@@ -94,8 +116,9 @@ func _ready():
 
 ## Conventions & gotchas
 
-- **Groups** — components self-register: `player`, `enemy`, `wall`, `joystick`.
-  Trigger areas, spawners, and projectiles discover each other through them.
+- **Groups** — components self-register: `player`, `enemy`, `wall`, `joystick`,
+  `loot`. Trigger areas, spawners, and projectiles discover each other through
+  them.
 - **`camera.size` is the FULL ortho height** in Godot 4. Half-extents are
   `size / 2` — `visible_footprint.gd` handles this.
 - **`camera.setup()` before `configure_map`** — the footprint math reads
@@ -123,7 +146,11 @@ godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
 (Any command-line flag works; the runner prints a pass/fail summary and exits
 nonzero on failure.) Tests cover grid maps and walls, footprint math, the camera
 sizing/clip guard, spawner wave counts and ramp growth, enemy target reaching,
-trigger-area signals, projectile hits/walls/lifetime, and joystick vector math.
+trigger-area signals, projectile hits/walls/lifetime, joystick vector math, and
+loot drops/pickups.
 
-Reference scenes that exercise everything together:
-`scenes/sandbox/combined_sandbox.tscn` (player + zones + waves + shooting).
+Reference sandboxes that exercise everything together (reachable from the main
+menu under "Dev Sandboxes"): `scenes/sandbox/combined_sandbox.tscn` (player +
+zones + waves + shooting + loot), plus focused ones — `pickup_sandbox.tscn`
+(collect on contact / on key), `loot_spawn_sandbox.tscn` (spawn a pile), and
+`loot_drop_sandbox.tscn` (enemies drop loot when shot).

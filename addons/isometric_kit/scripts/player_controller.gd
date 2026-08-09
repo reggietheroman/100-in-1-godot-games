@@ -34,6 +34,8 @@ func _physics_process(delta: float):
 
 	var input := _read_input()
 	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
 	var fwd := -cam.global_transform.basis.z
 	fwd.y = 0.0
 	fwd = fwd.normalized()

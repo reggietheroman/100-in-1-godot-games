@@ -12,6 +12,9 @@ func _ready():
 	$Layout/SandboxTriggersButton.pressed.connect(_on_sandbox_triggers_pressed)
 	$Layout/SandboxCombinedButton.pressed.connect(_on_sandbox_combined_pressed)
 	$Layout/SandboxShootingButton.pressed.connect(_on_sandbox_shooting_pressed)
+	$Layout/SandboxLootPickupButton.pressed.connect(_on_sandbox_loot_pickup_pressed)
+	$Layout/SandboxLootSpawnerButton.pressed.connect(_on_sandbox_loot_spawner_pressed)
+	$Layout/SandboxLootDropButton.pressed.connect(_on_sandbox_loot_drop_pressed)
 
 
 func _on_zombie_math_pressed():
@@ -52,3 +55,15 @@ func _on_sandbox_combined_pressed():
 
 func _on_sandbox_shooting_pressed():
 	get_tree().change_scene_to_file("res://scenes/sandbox/shooting_sandbox.tscn")
+
+
+func _on_sandbox_loot_pickup_pressed():
+	get_tree().change_scene_to_file("res://scenes/sandbox/pickup_sandbox.tscn")
+
+
+func _on_sandbox_loot_spawner_pressed():
+	get_tree().change_scene_to_file("res://scenes/sandbox/loot_spawn_sandbox.tscn")
+
+
+func _on_sandbox_loot_drop_pressed():
+	get_tree().change_scene_to_file("res://scenes/sandbox/loot_drop_sandbox.tscn")

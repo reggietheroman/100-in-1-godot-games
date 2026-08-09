@@ -96,3 +96,18 @@ custom_minimum_size = Vector2(280, 36)
 text = "Sandbox: Shooting"
 size_flags_horizontal = 4
 custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxLootPickupButton" type="Button" parent="Layout"]
+text = "Sandbox: Loot Pickup"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxLootSpawnerButton" type="Button" parent="Layout"]
+text = "Sandbox: Loot Spawner"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
+[node name="SandboxLootDropButton" type="Button" parent="Layout"]
+text = "Sandbox: Loot Drops"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)

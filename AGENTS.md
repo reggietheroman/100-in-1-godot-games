@@ -33,6 +33,8 @@ Reusable 3D components driven by exported vars; sandboxes in `scenes/sandbox/` e
 - **Isometric camera** (`scripts/isometric_camera.gd`): orthographic camera, `map` ref, `angle`/`yaw`, auto-fits to map; `fit_size` overrides the fitted size. `setup()` computes `distance = max(size * 0.9, fitted_world * 0.9)` so the frustum bottom stays above the ground plane (avoids a clear-color band at the bottom of the view). Ortho image is distance-invariant, so this only affects near-plane clipping.
 - **Joystick** (`scripts/joystick.gd`): floating touch joystick (`visible_on_desktop` for testing).
 - **Projectile** (`scripts/projectile.gd`): `Area3D` that flies along a `direction` and emits `hit(enemy)` on collision with `enemy`-group bodies; despawns on `wall`-group bodies.
+- **Loot item** (`scripts/loot_item.gd`): `Area3D` collectible with `pickup_mode` (`Auto` contact / `Key` uses the `pickup` action), `despawn_time`, pickup effects. Grouped `loot`, emits `picked_up`.
+- **Loot drop** (`scripts/loot_drop.gd`): static helpers (`drop`, `for_enemy`) that place a loot scene on the ground; `enemy_mover.die()` uses it when `loot_scene` is set.
 
 ### Sandboxes (`scenes/sandbox/`)
 
@@ -41,10 +43,13 @@ Each is a `Node3D` with exported dev config applied in `_ready()`, an isometric 
 - `player_sandbox` — player movement, tune `player_move_speed`.
 - `spawner_sandbox` — enemy waves; spawn/rally point click-to-place + wave/enemy count UI.
 - `trigger_sandbox` — three trigger zones logging player/enemy enter/exit events.
-- `combined_sandbox` — everything together: player, zones, configurable waves (spawn/rally click-to-place, wave count, enemies 1–5 then ∞ ramp), and shooting (Space/Fire, auto-fire, fire rate, hits). Shots kill enemies permanently; waves refill the field.
+- `combined_sandbox` — everything together: player, zones, configurable waves (spawn/rally click-to-place, wave count, enemies 1–5 then ∞ ramp), shooting (Space/Fire, auto-fire, fire rate, hits), and loot — shot enemies drop loot you can collect. Shots kill enemies permanently; waves refill the field.
 - `shooting_sandbox` — shooting vs. random enemies (killed enemies respawn); map fills the whole camera POV with boundary walls.
+- `pickup_sandbox` — loot items scattered on the map: collect on contact (Auto) and on key press (Key).
+- `loot_spawn_sandbox` — spawn a pile of loot on click (LootDrop static helper).
+- `loot_drop_sandbox` — player shoots enemies, each drops a loot item; pickup counter in the HUD.
 
-WASD/arrow input actions (`move_left/right/up/down`) and `shoot` (Space) are defined in `project.godot`.
+WASD/arrow input actions (`move_left/right/up/down`), `shoot` (Space), and `pickup` (E) are defined in `project.godot`.
 
 ## Architecture
 
@@ -82,5 +87,5 @@ Design specs live in `.opencode/plans/002-game-designs.md`. Keep the plan in syn
   godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
   ```
 
-  Expect `tests passed: 61, failed: 0`. Tests must await a `process_frame` before
+  Expect `tests passed: 72, failed: 0`. Tests must await a `process_frame` before
   instancing scene nodes, since nodes added before the first frame never enter the tree.

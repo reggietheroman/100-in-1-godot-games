@@ -26,6 +26,9 @@ const TRIGGER_SCENE := "res://addons/isometric_kit/scenes/trigger_area.tscn"
 const PROJECTILE_SCENE := "res://addons/isometric_kit/scenes/projectile.tscn"
 const GRID_SCRIPT := "res://addons/isometric_kit/scripts/grid_map.gd"
 const SPAWNER_SCRIPT := "res://addons/isometric_kit/scripts/enemy_spawner.gd"
+const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
+const LootItem := preload("res://addons/isometric_kit/scripts/loot_item.gd")
+const LootDrop := preload("res://addons/isometric_kit/scripts/loot_drop.gd")
 
 
 func _initialize():
@@ -64,6 +67,7 @@ func _run() -> void:
 	await _test_projectile()
 	await _test_joystick()
 	await _test_player()
+	await _test_loot()
 	print("--------------------------------")
 	print("tests passed: %d, failed: %d" % [_passed, _failed])
 	quit(0 if _failed == 0 else 1)
@@ -401,3 +405,96 @@ func _test_player() -> void:
 	joy.free()
 	cam.free()
 	floor.free()
+
+
+func _test_loot() -> void:
+	print("== loot ==")
+	var scene = load(LOOT_SCENE)
+
+	var item = scene.instantiate()
+	item.lifetime = 0.02
+	item.position = Vector3(20, 0.25, 20)
+	var despawned: Array = []
+	item.tree_exited.connect(func(): despawned.append(true))
+	root.add_child(item)
+	await create_timer(0.4).timeout
+	_check(not despawned.is_empty(), "loot despawns after its lifetime")
+
+	var item2 = scene.instantiate()
+	item2.pickup_mode = LootItem.PickupMode.AUTO
+	item2.lifetime = 0.0
+	item2.show_fly_anim = false
+	item2.position = Vector3(0, 0.25, 0)
+	root.add_child(item2)
+	var player = load(PLAYER_SCENE).instantiate()
+	player.position = Vector3(0.4, 0.6, 0)
+	root.add_child(player)
+	var picked: Array = []
+	var removed: Array = []
+	item2.picked_up.connect(func(it): picked.append(it))
+	item2.tree_exited.connect(func(): removed.append(true))
+	var t0 := Time.get_ticks_msec()
+	while removed.is_empty() and Time.get_ticks_msec() - t0 < 2000:
+		await process_frame
+	_check(not picked.is_empty(), "auto loot picked up on player overlap")
+	_check(not removed.is_empty(), "picked up loot is removed")
+	player.free()
+
+	var item3 = scene.instantiate()
+	item3.pickup_mode = LootItem.PickupMode.KEY
+	item3.lifetime = 0.0
+	item3.show_fly_anim = false
+	item3.position = Vector3(0, 0.25, 0)
+	root.add_child(item3)
+	var player2 = load(PLAYER_SCENE).instantiate()
+	player2.position = Vector3(0.4, 0.6, 0)
+	root.add_child(player2)
+	var picked3: Array = []
+	item3.picked_up.connect(func(it): picked3.append(it))
+	Input.action_press("pickup")
+	for i in 5:
+		await process_frame
+	Input.action_release("pickup")
+	_check(not picked3.is_empty(), "key loot picked up when player is inside and pickup pressed")
+	player2.free()
+
+	var item4 = scene.instantiate()
+	item4.pickup_mode = LootItem.PickupMode.KEY
+	item4.lifetime = 0.0
+	item4.position = Vector3(0, 0.25, 0)
+	root.add_child(item4)
+	var player3 = load(PLAYER_SCENE).instantiate()
+	player3.position = Vector3(8, 0.6, 8)
+	root.add_child(player3)
+	var picked4: Array = []
+	item4.picked_up.connect(func(it): picked4.append(it))
+	Input.action_press("pickup")
+	for i in 3:
+		await process_frame
+	Input.action_release("pickup")
+	_check(picked4.is_empty(), "key loot not picked up when player is outside radius")
+	_check(not item4.is_queued_for_deletion(), "item stays when not picked up")
+	item4.free()
+	player3.free()
+
+	var dropped = LootDrop.spawn(load(LOOT_SCENE), Vector3(2, 5, 3), root)
+	_check(dropped != null, "loot_drop.spawn returns an item")
+	_check(dropped.position == Vector3(2, 0.25, 3), "loot_drop.spawn places item on the ground at x/z")
+	dropped.free()
+
+	var enemy = load(ENEMY_SCENE).instantiate()
+	enemy.position = Vector3(1, 0.6, 1)
+	enemy.loot_scene = load(LOOT_SCENE)
+	root.add_child(enemy)
+	enemy.die()
+	_check(enemy.is_queued_for_deletion(), "die() queues the enemy for deletion")
+	var loot_here := false
+	for l in get_nodes_in_group("loot"):
+		if l.global_position == Vector3(1, 0.25, 1):
+			loot_here = true
+	_check(loot_here, "die() spawns the enemy's loot at its position")
+
+	var enemy2 = load(ENEMY_SCENE).instantiate()
+	root.add_child(enemy2)
+	enemy2.die()
+	_check(enemy2.is_queued_for_deletion(), "die() without loot_scene still removes the enemy")
