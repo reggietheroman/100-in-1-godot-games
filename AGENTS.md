@@ -80,7 +80,7 @@ Design specs live in `.opencode/plans/002-game-designs.md`. Keep the plan in syn
 
 ## Settings
 
-- Window stretch: canvas_items (expand)
+- Window stretch: viewport (expand), base 1280×720
 - Renderer: gl_compatibility
 - Physics: Jolt Physics 3D
 
