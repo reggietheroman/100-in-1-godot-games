@@ -18,6 +18,13 @@
 ## empty to keep an asset's own materials). The dev configures which structure a
 ## site builds and how much each level costs (`stages`); players can only pay
 ## what's required by standing on the pad.
+##
+## Setting `tower_scene` instead turns the site into a functional tower (see
+## `tower.gd`): ONE tower instance is built (no per-level segments) and each
+## paid stage calls its `apply_level()`, upgrading its stats via `tower_level_stats`
+## (indexed `level - 1`, overriding the tower's own `level_stats` when given).
+## Tower sites use a single structure, so `structure_scene`/`structure_colors`
+## are ignored when `tower_scene` is set.
 extends Node3D
 
 const DEPOSIT_SCENE := "res://addons/isometric_kit/scenes/currency_deposit.tscn"
@@ -50,6 +57,17 @@ const CELEBRATION_SCENE := "res://addons/isometric_kit/scenes/celebration.tscn"
 	Color(1.0, 0.7, 0.2),
 	Color(1.0, 0.4, 0.35),
 ]
+
+## Optional functional tower to build instead of visual structure segments (see
+## `tower.gd`). When set, the site builds ONE tower that upgrades its stats on
+## each level-up via `apply_level()`; `structure_scene` and `structure_colors`
+## are ignored.
+@export var tower_scene: PackedScene
+
+## Per-level stat overrides for a `tower_scene`, indexed `level - 1`. Each entry
+## may override any of `fire_interval`/`range`/`damage`/`splash_radius`. Empty
+## falls back to the tower's own `level_stats`.
+@export var tower_level_stats: Array[Dictionary] = []
 
 ## Drains the wallet automatically while the player stands on the pad.
 @export var auto_activate := true
@@ -85,6 +103,8 @@ var level := 0
 @onready var structure: Node3D = $Structure
 
 var _segments: Array[Node3D] = []
+var _tower: Node3D
+var _tower_height := 0.8
 
 
 func _ready():
@@ -112,6 +132,16 @@ func _target_for_level(target_level: int) -> int:
 
 func _build_structure():
 	_segments.clear()
+	if tower_scene != null:
+		var inst := tower_scene.instantiate()
+		if inst is Node3D:
+			inst.position = Vector3(0, 0.2, 0)
+			inst.scale = Vector3.ZERO
+			structure.add_child(inst)
+			_tower = inst
+			var height = inst.get("visual_height")
+			_tower_height = height if height is float else 0.8
+		return
 	for i in stages.size():
 		var seg := _make_segment()
 		seg.position = Vector3(0, 0.2 + i * 1.0, 0)
@@ -150,6 +180,8 @@ func _celebrate(target_level: int):
 		return
 	var celebration = load(CELEBRATION_SCENE).instantiate()
 	var top := 0.2 + (target_level - 1) * 1.0
+	if _tower != null:
+		top = 0.2 + _tower_height + 0.4
 	celebration.position = Vector3(0, top + 1.1, 0)
 	structure.add_child(celebration)
 	var final := target_level >= stages.size()
@@ -181,6 +213,17 @@ func _on_deposited_changed(deposited: int, capacity: int):
 
 
 func _show_level(target_level: int):
+	if _tower != null:
+		if _tower.has_method("apply_level"):
+			var stats: Dictionary = {}
+			if not tower_level_stats.is_empty():
+				stats = tower_level_stats[mini(target_level - 1, tower_level_stats.size() - 1)]
+			_tower.apply_level(target_level, stats)
+		if _tower.scale != Vector3.ONE:
+			var tween := _tower.create_tween()
+			tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tween.tween_property(_tower, "scale", Vector3.ONE, 0.25)
+		return
 	for i in _segments.size():
 		var seg := _segments[i]
 		if i < target_level:

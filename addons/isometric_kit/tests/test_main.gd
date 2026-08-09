@@ -30,6 +30,7 @@ const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
 const DEPOSIT_SCENE := "res://addons/isometric_kit/scenes/currency_deposit.tscn"
 const BUILD_SITE_SCENE := "res://addons/isometric_kit/scenes/build_site.tscn"
 const CELEBRATION_SCENE := "res://addons/isometric_kit/scenes/celebration.tscn"
+const TOWER_SCENE := "res://addons/isometric_kit/scenes/tower.tscn"
 const LootItem := preload("res://addons/isometric_kit/scripts/loot_item.gd")
 const LootDrop := preload("res://addons/isometric_kit/scripts/loot_drop.gd")
 const CurrencyWallet := preload("res://addons/isometric_kit/scripts/currency_wallet.gd")
@@ -67,8 +68,10 @@ func _run() -> void:
 	await _test_camera()
 	await _test_spawner()
 	await _test_enemy_mover()
+	await _test_enemy_health()
 	await _test_trigger_area()
 	await _test_projectile()
+	await _test_tower()
 	await _test_joystick()
 	await _test_player()
 	await _test_loot()
@@ -265,6 +268,49 @@ func _test_enemy_mover() -> void:
 	floor.free()
 
 
+func _test_enemy_health() -> void:
+	print("== enemy_mover health ==")
+	var damaged: Array = []
+	var died: Array = []
+	var enemy = load(ENEMY_SCENE).instantiate()
+	enemy.max_health = 3
+	enemy.position = Vector3(1, 0.6, 1)
+	root.add_child(enemy)
+	enemy.damaged.connect(func(a, h): damaged.append([a, h]))
+	enemy.died.connect(func(_e): died.append(true))
+	_check(enemy.health == 3, "enemy health starts at max_health")
+
+	enemy.take_damage(1)
+	_check(enemy.health == 2 and damaged == [[1, 2]], "take_damage reduces health and emits damaged(amount, health)")
+	_check(died.is_empty() and not enemy.is_queued_for_deletion(), "surviving damage does not kill the enemy")
+	enemy.take_damage(2)
+	_check(enemy.health == 0 and died.size() == 1 and enemy.is_queued_for_deletion(),
+		"take_damage kills the enemy at zero health and emits died once")
+
+	enemy.take_damage(1)
+	_check(enemy.is_queued_for_deletion(), "damage after death is ignored")
+
+	var loot_count := _loot_group_count()
+	var enemy2 = load(ENEMY_SCENE).instantiate()
+	enemy2.loot_scene = load(LOOT_SCENE)
+	enemy2.position = Vector3(2, 0.6, 2)
+	root.add_child(enemy2)
+	enemy2.die()
+	enemy2.die()
+	_check(enemy2.is_queued_for_deletion(), "die() is idempotent (still queued once)")
+	_check(_loot_group_count() == loot_count + 1, "die() drops loot only once across repeat calls")
+	enemy.free()
+	enemy2.free()
+
+
+func _loot_group_count() -> int:
+	var count := 0
+	for l in get_nodes_in_group("loot"):
+		if is_instance_valid(l):
+			count += 1
+	return count
+
+
 func _test_trigger_area() -> void:
 	print("== trigger_area ==")
 	var area = load(TRIGGER_SCENE).instantiate()
@@ -347,8 +393,137 @@ func _test_projectile() -> void:
 	await physics_frame
 	_check(pm.global_position.x > start_x + 0.05, "projectile flies along its direction")
 	pm.free()
+
+	var hit_enemy = load(ENEMY_SCENE).instantiate()
+	hit_enemy.max_health = 5
+	hit_enemy.position = Vector3(0, 0.6, 0)
+	root.add_child(hit_enemy)
+	var splash_enemy = load(ENEMY_SCENE).instantiate()
+	splash_enemy.max_health = 5
+	splash_enemy.position = Vector3(0.8, 0.6, 0)
+	root.add_child(splash_enemy)
+	var far_enemy = load(ENEMY_SCENE).instantiate()
+	far_enemy.max_health = 5
+	far_enemy.position = Vector3(4, 0.6, 0)
+	root.add_child(far_enemy)
+
+	var ps = scene.instantiate()
+	ps.damage = 2
+	ps.splash_radius = 1.0
+	ps.position = Vector3(0, 0.6, 0)
+	root.add_child(ps)
+	ps._on_body_entered(hit_enemy)
+	_check(hit_enemy.health == 3, "projectile deals damage to the hit enemy")
+	_check(splash_enemy.health == 3, "splash damages enemies within the splash radius")
+	_check(far_enemy.health == 5, "enemies outside the splash radius are untouched")
+
+	ps.free()
+	hit_enemy.free()
+	splash_enemy.free()
+	far_enemy.free()
 	enemy_body.free()
 	wall_body.free()
+
+
+func _test_tower() -> void:
+	print("== tower ==")
+	var floor := _make_floor()
+	root.add_child(floor)
+
+	var tower = load(TOWER_SCENE).instantiate()
+	tower.position = Vector3(0, 0, 0)
+	tower.fire_interval = 0.5
+	tower.range = 5.0
+	tower.damage = 2
+	tower.splash_radius = 0.0
+	root.add_child(tower)
+	_check(tower.is_in_group("tower"), "tower is in the 'tower' group")
+	_check(tower.level == 0, "tower starts at level 0 (base stats)")
+
+	var fired: Array = []
+	tower.fired.connect(func(e): fired.append(e))
+	for i in 10:
+		await physics_frame
+	_check(fired.is_empty(), "tower does not fire with no enemies in range")
+
+	var enemy = load(ENEMY_SCENE).instantiate()
+	enemy.max_health = 10
+	enemy.position = Vector3(3, 0.6, 0)
+	enemy.target = enemy.position
+	root.add_child(enemy)
+	var guard := 0
+	while enemy.health >= 10 and guard < 300:
+		await physics_frame
+		guard += 1
+	_check(not fired.is_empty(), "tower fires at an enemy in range")
+	_check(enemy.health == 8, "tower shot deals its configured damage")
+
+	guard = 0
+	while absf(tower.turret.rotation.y - PI / 2.0) > 0.1 and guard < 120:
+		await physics_frame
+		guard += 1
+	_check(absf(tower.turret.rotation.y - PI / 2.0) < 0.1, "tower turret aims at the target")
+
+	var kills: Array = []
+	tower.enemy_killed.connect(func(e): kills.append(e))
+	var fragile = load(ENEMY_SCENE).instantiate()
+	fragile.max_health = 2
+	fragile.position = Vector3(-2, 0.6, 0)
+	fragile.target = fragile.position
+	root.add_child(fragile)
+	guard = 0
+	while kills.is_empty() and guard < 400:
+		await physics_frame
+		guard += 1
+	_check(not kills.is_empty(), "tower emits enemy_killed when a shot kills an enemy")
+
+	tower.free()
+
+	var tower2 = load(TOWER_SCENE).instantiate()
+	tower2.position = Vector3(-5, 0, 0)
+	tower2.range = 3.0
+	tower2.fire_interval = 0.1
+	root.add_child(tower2)
+	var fired2: Array = []
+	tower2.fired.connect(func(e): fired2.append(e))
+	var out_enemy = load(ENEMY_SCENE).instantiate()
+	out_enemy.max_health = 5
+	out_enemy.position = Vector3(-0.5, 0.6, 0)
+	out_enemy.target = out_enemy.position
+	root.add_child(out_enemy)
+	for i in 20:
+		await physics_frame
+	_check(fired2.is_empty(), "tower does not fire at enemies outside its range")
+	out_enemy.position = Vector3(-4.5, 0.6, 0)
+	guard = 0
+	while fired2.is_empty() and guard < 120:
+		await physics_frame
+		guard += 1
+	_check(not fired2.is_empty(), "tower fires once an enemy enters its range")
+	out_enemy.free()
+	tower2.free()
+
+	var tower3 = load(TOWER_SCENE).instantiate()
+	root.add_child(tower3)
+	var lvl_stats: Array[Dictionary] = []
+	lvl_stats.append({"fire_interval": 0.2, "damage": 4})
+	lvl_stats.append({"range": 9.0, "splash_radius": 2.0})
+	tower3.level_stats = lvl_stats
+	tower3.apply_level(1)
+	_check(tower3.fire_interval == 0.2 and tower3.damage == 4, "apply_level overrides stats from level_stats")
+	_check(tower3.range == 5.0, "stats not in the level entry fall back to base")
+	tower3.apply_level(2)
+	_check(tower3.range == 9.0 and tower3.splash_radius == 2.0 and tower3.level == 2,
+		"second level overrides further stats")
+	tower3.apply_level(3)
+	_check(tower3.range == 9.0, "levels past level_stats clamp to the last entry")
+	tower3.free()
+
+	for p in get_nodes_in_group("projectile"):
+		if is_instance_valid(p):
+			p.free()
+	enemy.free()
+	floor.free()
 
 
 func _test_joystick() -> void:
@@ -690,6 +865,46 @@ func _test_build_site() -> void:
 	_check(celebration.label.text == "Outpost Level 2!", "celebration label shows the passed message")
 	_check(celebration.particles.emitting, "celebration confetti starts emitting on celebrate")
 	celebration.queue_free()
+
+	var wallet2: Node3D = CurrencyWallet.new()
+	root.add_child(wallet2)
+	wallet2.add_currency(200)
+
+	var tower_site = load(BUILD_SITE_SCENE).instantiate()
+	tower_site.show_transfer_visuals = false
+	tower_site.transfer_amount = 4
+	tower_site.display_name = "Gatling"
+	var tower_stages: Array[int] = [20, 40]
+	tower_site.stages = tower_stages
+	tower_site.tower_scene = load(TOWER_SCENE)
+	var tls: Array[Dictionary] = []
+	tls.append({"damage": 2, "fire_interval": 0.5})
+	tls.append({"damage": 4, "range": 8.0})
+	tower_site.tower_level_stats = tls
+	root.add_child(tower_site)
+	_check(tower_site._tower != null, "tower_scene builds a single tower instance")
+	_check(tower_site._segments.is_empty(), "tower sites skip the per-level box segments")
+	_check(tower_site._tower.scale == Vector3.ZERO, "tower starts hidden until its first stage is paid")
+
+	var tower_pad: Area3D = tower_site.pad
+	var tower_player := Node3D.new()
+	tower_player.add_to_group("player")
+	tower_pad._on_body_entered(tower_player)
+	var t1 := Time.get_ticks_msec()
+	while tower_site.level < 1 and Time.get_ticks_msec() - t1 < 4000:
+		await process_frame
+	_check(tower_site.level == 1, "tower site levels up after paying the first stage")
+	_check(tower_site._tower.level == 1, "built tower receives apply_level on level-up")
+	_check(tower_site._tower.damage == 2 and tower_site._tower.fire_interval == 0.5,
+		"tower stats upgraded from tower_level_stats")
+	var t2 := Time.get_ticks_msec()
+	while tower_site.level < 2 and Time.get_ticks_msec() - t2 < 4000:
+		await process_frame
+	_check(tower_site._tower.damage == 4 and tower_site._tower.range == 8.0,
+		"second level overrides further tower stats")
+	tower_player.free()
+	tower_site.free()
+	wallet2.free()
 
 	pad_player.free()
 	site.free()

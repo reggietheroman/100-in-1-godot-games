@@ -21,14 +21,29 @@ const LootDrop := preload("res://addons/isometric_kit/scripts/loot_drop.gd")
 ## enemies that drop nothing.
 @export var loot_scene: PackedScene
 
+## Health pool. `take_damage()` reduces it; reaching zero calls `die()`. The
+## default (1) keeps the classic one-shot behavior.
+@export var max_health := 1
+
 ## Emitted once the enemy gets within `stop_distance` of `target`.
 signal reached_rally_point
+
+## Emitted whenever the enemy takes damage (after `health` is reduced).
+signal damaged(amount: int, health: int)
+
+## Emitted exactly once when the enemy dies (with the enemy itself).
+signal died(enemy: Node3D)
+
+## Current health. Initialized to `max_health` in `_ready()`.
+var health := 1
 
 ## Point to walk to. Set this before the node starts processing (e.g. in the
 ## spawner or right after instantiation).
 var target := Vector3.ZERO
 
 var reached_rally := false
+
+var _dead := false
 
 @onready var mesh_instance: MeshInstance3D = $Body
 
@@ -37,6 +52,7 @@ var gravity := 20.0
 
 func _ready():
 	add_to_group("enemy")
+	health = max_health
 	_apply_color()
 
 
@@ -70,10 +86,25 @@ func _apply_color():
 	mesh_instance.material_override = mat
 
 
+## Reduces health by `amount`, emitting `damaged`, and kills the enemy when
+## health reaches zero. Ignored once the enemy is dead.
+func take_damage(amount: int):
+	if _dead or amount <= 0:
+		return
+	health -= amount
+	damaged.emit(amount, health)
+	if health <= 0:
+		die()
+
+
 ## Kills the enemy: drops its configured `loot_scene` at its position (if set)
 ## and removes it from the scene. Call this instead of `queue_free()` when the
-## enemy should leave loot behind.
+## enemy should leave loot behind. Safe to call more than once (idempotent).
 func die():
+	if _dead:
+		return
+	_dead = true
+	died.emit(self)
 	var parent := get_parent()
 	if loot_scene != null and parent != null:
 		LootDrop.spawn(loot_scene, global_position, parent)

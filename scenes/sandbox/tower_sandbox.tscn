@@ -1,0 +1,81 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/sandbox/tower_sandbox.gd" id="1"]
+[ext_resource type="Script" path="res://addons/isometric_kit/scripts/grid_map.gd" id="2"]
+[ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/isometric_camera.tscn" id="3"]
+
+[node name="TowerSandbox" type="Node3D"]
+script = ExtResource("1")
+tower_configs = Array[Dictionary]([{"name": &"Rapid", "position": Vector3(-9.33, 0, 0), "spawn_point": Vector3(-9.33, 0.6, 5.5), "rally_point": Vector3(-9.33, 0.6, -5.5), "fire_interval": 0.22, "range": 4.0, "damage": 1, "splash_radius": 0.0, "color": Color(0.35, 0.7, 1, 1)}, {"name": &"Cannon", "position": Vector3(0, 0, 0), "spawn_point": Vector3(0, 0.6, 5.5), "rally_point": Vector3(0, 0.6, -5.5), "fire_interval": 1.1, "range": 6.5, "damage": 3, "splash_radius": 1.6, "color": Color(1, 0.55, 0.2, 1)}, {"name": &"Sniper", "position": Vector3(9.33, 0, 0), "spawn_point": Vector3(9.33, 0.6, 5.5), "rally_point": Vector3(9.33, 0.6, -5.5), "fire_interval": 1.8, "range": 9.0, "damage": 5, "splash_radius": 0.0, "color": Color(0.8, 0.4, 1, 1)}])
+
+[node name="GridMap" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Camera" parent="." instance=ExtResource("3")]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="BackButton" type="Button" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 36.0
+text = "Back to Sandboxes"
+focus_mode = 0
+
+[node name="KillsLabel" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 44.0
+offset_right = -8.0
+offset_bottom = 64.0
+text = "Enemies killed: 0"
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Panel" type="PanelContainer" parent="HUD"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 220.0
+offset_bottom = 140.0
+
+[node name="Controls" type="VBoxContainer" parent="HUD/Panel"]
+theme_override_constants/separation = 6
+
+[node name="StartButton" type="Button" parent="HUD/Panel/Controls"]
+text = "Start Waves"
+focus_mode = 0
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.92
+anchor_right = 0.5
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+text = "Click Start Waves — each lane's tower shoots enemies marching to its rally point"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="HintLabel" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_top = 32.0
+offset_bottom = 52.0
+text = "Three lanes, one tower each — enemies march from each lane's spawn point to its rally point."
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 0.7)
+theme_override_font_sizes/font_size = 12

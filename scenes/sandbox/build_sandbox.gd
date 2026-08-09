@@ -31,6 +31,17 @@ const BUILD_SITE_SCENE := "res://addons/isometric_kit/scenes/build_site.tscn"
 		"structure_offset": Vector3(3.5, 0, 0),
 		"colors": [Color(1.0, 0.6, 0.3), Color(1.0, 0.4, 0.3), Color(0.9, 0.3, 0.5)],
 	},
+	{
+		"name": "Gatling Tower",
+		"stages": [20, 40],
+		"offset": Vector3(4, 0, 4),
+		"structure_offset": Vector3(-3.5, 0, 0),
+		"tower_scene": "res://addons/isometric_kit/scenes/tower.tscn",
+		"tower_level_stats": [
+			{"fire_interval": 0.5, "range": 5.0, "damage": 1},
+			{"fire_interval": 0.3, "range": 7.0, "damage": 2, "splash_radius": 1.2},
+		],
+	},
 ]
 
 const BOUNDARY_WALL_H := 1.5
@@ -63,10 +74,18 @@ func _ready():
 		for v in cfg["stages"]:
 			stages.append(v)
 		site.stages = stages
-		var colors: Array[Color] = []
-		for c in cfg["colors"]:
-			colors.append(c)
-		site.structure_colors = colors
+		if cfg.has("colors"):
+			var colors: Array[Color] = []
+			for c in cfg["colors"]:
+				colors.append(c)
+			site.structure_colors = colors
+		if cfg.has("tower_scene"):
+			site.tower_scene = load(cfg["tower_scene"])
+		if cfg.has("tower_level_stats"):
+			var level_stats: Array[Dictionary] = []
+			for s in cfg["tower_level_stats"]:
+				level_stats.append(s)
+			site.tower_level_stats = level_stats
 		site.structure_offset = cfg["structure_offset"]
 		site.position = _map_center + cfg["offset"]
 		add_child(site)

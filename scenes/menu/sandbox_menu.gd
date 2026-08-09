@@ -13,6 +13,7 @@ func _ready():
 	_open_for("SandboxLootDropButton", "res://scenes/sandbox/loot_drop_sandbox.tscn")
 	_open_for("SandboxCurrencyButton", "res://scenes/sandbox/currency_sandbox.tscn")
 	_open_for("SandboxBuildButton", "res://scenes/sandbox/build_sandbox.tscn")
+	_open_for("SandboxTowerButton", "res://scenes/sandbox/tower_sandbox.tscn")
 
 
 func _open_for(button: String, scene: String):
