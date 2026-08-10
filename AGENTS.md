@@ -16,9 +16,20 @@ scenes/
     └── throne_defender/  — clone of Thronefall
 addons/isometric_kit/   — reusable 3D systems addon
 .opencode/plans/   — stored plans and proposals
+docs/              — learning docs (architecture, configuration, design decisions)
 ```
 
 Each mini-game has a `title.tscn/gd` (title screen with Start/Back buttons) and a `game.tscn/gd`. `sands_of_hanoi` is the only game fully implemented so far; the other four `game.tscn/gd` files are placeholders.
+
+## Documentation (docs/)
+
+This project doubles as a learning tool. `docs/` answers "why is it like this?" and "how do I configure X by hand?" — consult it before re-deriving from code.
+
+- `docs/architecture.md` — the "why" document: GDScript OO, data-driven types, composition vs inheritance, duck typing.
+- `docs/manual-configuration.md` — every exported var + signal per system and how to tune it by hand. **Keep in sync whenever a system's config/behavior changes.**
+- `docs/design-decisions.md` — running log of decisions (newest first) with reasoning. **Append an entry whenever a design decision is made.**
+
+The user often wants the *reasoning* behind code, not just the code — when answering "why" questions or making changes, tie decisions back to these docs.
 
 ## 3D systems addon (`addons/isometric_kit`)
 
@@ -33,8 +44,8 @@ Reusable 3D components driven by exported vars; sandboxes in `scenes/sandbox/` e
 - **Isometric camera** (`scripts/isometric_camera.gd`): orthographic camera, `map` ref, `angle`/`yaw`, auto-fits to map; `fit_size` overrides the fitted size. `setup()` computes `distance = max(size * 0.9, fitted_world * 0.9)` so the frustum bottom stays above the ground plane (avoids a clear-color band at the bottom of the view). Ortho image is distance-invariant, so this only affects near-plane clipping.
 - **Joystick** (`scripts/joystick.gd`): floating touch joystick (`visible_on_desktop` for testing).
 - **Projectile** (`scripts/projectile.gd`): `Area3D` that flies along a `direction` and emits `hit(enemy)` on collision with `enemy`-group bodies; despawns on `wall`-group bodies. Carries `damage` (default 1) and `splash_radius` (0 = single target; >0 also damages enemies near the impact, excluding the primary). Grouped `projectile`.
-- **Loot item** (`scripts/loot_item.gd`): `Area3D` collectible with `pickup_mode` (`Auto` contact / `Key` uses the `pickup` action), `despawn_time`, pickup effects. Grouped `loot`, emits `picked_up`.
-- **Loot drop** (`scripts/loot_drop.gd`): static helpers (`drop`, `for_enemy`) that place a loot scene on the ground; `enemy_mover.die()` uses it when `loot_scene` is set.
+- **Loot item** (`scripts/loot_item.gd`): `Node3D` collectible with `pickup_mode` (`Auto` contact / `Key` uses the `pickup` action), `lifetime` (despawn timer, 0 = never), `pickup_radius`, and pickup effects (`show_particle_burst`/`show_floating_label`/`show_fly_anim`). Grouped `loot`, emits `picked_up`. Variant scenes (`loot_coin.tscn`) reuse the script with a different mesh + defaults.
+- **Loot drop** (`scripts/loot_drop.gd`): static helper `LootDrop.spawn(loot_scene, at, parent)` that places a loot scene on the ground; `enemy_mover.die()` uses it when `loot_scene` is set.
 - **Currency wallet** (`scripts/currency_wallet.gd`): `Node3D` that tracks a currency balance with `add_currency`/`spend_currency`; emits `currency_changed`. Grouped `wallet`.
 - **Currency deposit** (`scripts/currency_deposit.gd`): `Area3D` pad with `capacity` and a `Label3D` showing `{display_name} deposited/capacity`. Drains the wallet into the area while the player stands on it (`auto_activate`, default true) or on `activation_action` (default `pickup`/E) when auto is off. Transfers tick (`transfer_amount` units every `transfer_interval` seconds) with a coin arcing up from above the player to the pad, so counts animate instead of jumping; each coin landing bumps the pad and filling up plays a pop + flash + label bump. `paused` freezes transfers until cleared (used by `build_site` for a post-milestone beat). Grouped `deposit`, emits `deposited_changed`. `register_in_group` (default true) lets embedded pads opt out of the group.
 - **Build site** (`scripts/build_site.gd`): `Node3D` for a predefined build area. Embeds a `currency_deposit` payment pad (auto-drains the wallet while the player stands on it, reusing the ticked coin-arc transfer). `stages` lists each level's cost paid in sequence (e.g. `[10, 25, 50]` = pay 10 for level 1, then 25 for level 2, then 50 for max); the pad label shows the current stage's progress and resets to `0/{next}` when a stage is paid. Each level-up pops a structure instance onto the spot beside the pad (`structure_offset`) and recolors it (`structure_colors`); the structure is one `structure_scene` instance per level when set (any 3D asset: `.glb`, `.tscn`, ...) or default `BoxMesh` blocks. Every finished stage plays a celebration popup + confetti burst above the structure (`celebration_enabled`); the final stage reads "{display_name} Complete!" and removes the pad, firing `completed`. The pad pauses for a beat after the first level (`first_level_pause`, 0 disables) so the milestone lands before the next stage. Structure, stages, and colors are dev-configured; players only pay by standing on the pad. `tower_scene` + `tower_level_stats` (indexed `level - 1`) instead build ONE functional tower: hidden until its first stage is paid, each paid stage calls its `apply_level()` to upgrade stats. Grouped `build_site`, emits `leveled_up(level)`/`completed`.
@@ -75,6 +86,7 @@ WASD/arrow input actions (`move_left/right/up/down`), `shoot` (Space), and `pick
 - One scene + one script per screen
 - Extend from root node type (Control for UI, Node2D/Node3D for game)
 - GDScript: tabs for indentation, class-based helpers as inner classes (`class Bottle:`), constants in `SCREAMING_SNAKE_CASE`
+- **Documentation**: append to `docs/design-decisions.md` whenever a design decision is made; keep `docs/manual-configuration.md` in sync when a system's exported vars/signals/behavior change (see the Documentation section above).
 
 ## Game designs
 
