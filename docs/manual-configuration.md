@@ -258,4 +258,4 @@ top):
 - `currency_sandbox` — waves → loot → wallet → deposit banks.
 - `build_sandbox` — building + tower sites.
 - `tower_sandbox` — Rapid/Cannon/Sniper tower types vs waves.
-- `combined_sandbox` — everything wired together with 4 Rapid tower build pads.
+- `tower_defense` — everything wired together with 4 Rapid tower build pads.

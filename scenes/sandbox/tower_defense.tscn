@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://jp7wd11tpqvb"]
 
-[ext_resource type="Script" uid="uid://c2utmdw67v854" path="res://scenes/sandbox/combined_sandbox.gd" id="1"]
+[ext_resource type="Script" uid="uid://c2utmdw67v854" path="res://scenes/sandbox/tower_defense.gd" id="1"]
 [ext_resource type="Script" uid="uid://dxbdn5tgdjru0" path="res://addons/isometric_kit/scripts/grid_map.gd" id="2"]
 [ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/isometric_camera.tscn" id="3"]
 [ext_resource type="Script" uid="uid://bycy3hy64wn4s" path="res://addons/isometric_kit/scripts/enemy_spawner.gd" id="4"]
@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" path="res://addons/isometric_kit/scenes/projectile.tscn" id="8"]
 [ext_resource type="Script" uid="uid://cd2nc64qrs373" path="res://addons/isometric_kit/scripts/currency_wallet.gd" id="9"]
 
-[node name="CombinedSandbox" type="Node3D" unique_id=749392279]
+[node name="TowerDefense" type="Node3D" unique_id=749392279]
 script = ExtResource("1")
 projectile_scene = ExtResource("8")
 enemy_scene = ExtResource("6")

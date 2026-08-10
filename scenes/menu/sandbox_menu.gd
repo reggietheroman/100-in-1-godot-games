@@ -6,7 +6,7 @@ func _ready():
 	_open_for("SandboxPlayerButton", "res://scenes/sandbox/player_sandbox.tscn")
 	_open_for("SandboxSpawnerButton", "res://scenes/sandbox/spawner_sandbox.tscn")
 	_open_for("SandboxTriggersButton", "res://scenes/sandbox/trigger_sandbox.tscn")
-	_open_for("SandboxCombinedButton", "res://scenes/sandbox/combined_sandbox.tscn")
+	_open_for("SandboxTowerDefenseButton", "res://scenes/sandbox/tower_defense.tscn")
 	_open_for("SandboxShootingButton", "res://scenes/sandbox/shooting_sandbox.tscn")
 	_open_for("SandboxLootPickupButton", "res://scenes/sandbox/pickup_sandbox.tscn")
 	_open_for("SandboxLootSpawnerButton", "res://scenes/sandbox/loot_spawn_sandbox.tscn")

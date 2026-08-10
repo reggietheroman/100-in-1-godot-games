@@ -52,8 +52,8 @@ text = "Trigger Areas"
 size_flags_horizontal = 4
 custom_minimum_size = Vector2(280, 36)
 
-[node name="SandboxCombinedButton" type="Button" parent="Scroll/Layout"]
-text = "Combined"
+[node name="SandboxTowerDefenseButton" type="Button" parent="Scroll/Layout"]
+text = "Tower Defense"
 size_flags_horizontal = 4
 custom_minimum_size = Vector2(280, 36)
 

@@ -17,9 +17,9 @@ configurations. This follows the data-driven type pattern in
 `docs/architecture.md`. Could later use Godot scene inheritance (`inherit`
 field) if the variant set grows.
 
-## 2026-08-10 — Combined sandbox currency loop starts at 0, enemies drop coins
+## 2026-08-10 — Tower Defense sandbox currency loop starts at 0, enemies drop coins
 
-**Decision:** `combined_sandbox` starts the wallet at 0 and enemies drop
+**Decision:** `tower_defense` starts the wallet at 0 and enemies drop
 `loot_coin.tscn` on death; picking a coin up credits the wallet via
 `add_currency(item.value)`. The separate "Coins collected" HUD counter was
 removed — the currency label is the single counter.
@@ -29,14 +29,14 @@ collect coins, and spend on the four build pads, closing the full loop. Two
 counters for the same flow (coins collected vs currency balance) was redundant
 and confusing; the wallet balance is the single source of truth.
 
-## 2026-08-10 — Combined sandbox: trigger zones replaced with 4 Rapid tower build pads
+## 2026-08-10 — Tower Defense sandbox: trigger zones replaced with 4 Rapid tower build pads
 
 **Decision:** Removed the `Zones` node (3 `trigger_area` zones) from
-`combined_sandbox` and replaced it with four `build_site` pads, one per map
+`tower_defense` and replaced it with four `build_site` pads, one per map
 corner at (±3, 0, ±3), each building a functional Rapid tower (stages
 `[15, 30, 50]`, `fire_interval 0.3→0.18`, `range 4.5→6.5`, `damage 1→3`).
 
-**Why:** The combined sandbox is the "everything together" demo; trigger zones
+**Why:** The tower defense sandbox is the "everything together" demo; trigger zones
 added nothing once the individual `trigger_sandbox` exists. Build pads exercise
 the currency loop (wallet → deposit → build → celebration) alongside shooting
 and waves, making the sandbox a full tower-defense micro-loop. Structure

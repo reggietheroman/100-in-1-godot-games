@@ -222,7 +222,7 @@ trigger-area signals, projectile hits/walls/lifetime, joystick vector math, loot
 drops/pickups, currency wallet/deposit behavior, and build-site stage level-ups.
 
 Reference sandboxes that exercise everything together (reachable from the main
-menu via the "Dev Sandboxes" button): `scenes/sandbox/combined_sandbox.tscn` (player +
+menu via the "Dev Sandboxes" button): `scenes/sandbox/tower_defense.tscn` (player +
 zones + waves + shooting + loot), `scenes/sandbox/currency_sandbox.tscn` (waves
 → loot → currency → three deposit pads of 10/25/50), `scenes/sandbox/build_sandbox.tscn`
 (start with 500 currency and build towers at three pads of different costs), plus

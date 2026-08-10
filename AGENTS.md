@@ -59,7 +59,7 @@ Each is a `Node3D` with exported dev config applied in `_ready()`, an isometric 
 - `player_sandbox` — player movement, tune `player_move_speed`.
 - `spawner_sandbox` — enemy waves; spawn/rally point click-to-place + wave/enemy count UI.
 - `trigger_sandbox` — three trigger zones logging player/enemy enter/exit events.
-- `combined_sandbox` — everything together: player, four pre-defined Rapid tower build pads, configurable waves (spawn/rally click-to-place, wave count, enemies 1–5 then ∞ ramp), shooting (Space/Fire, auto-fire, fire rate, hits), and loot — shot enemies drop coins worth currency, picked up on contact. Standing on a pad pays currency and builds/upgrades a functional Rapid tower beside it. Shots kill enemies permanently; waves refill the field.
+- `tower_defense` — everything together: player, four pre-defined Rapid tower build pads, configurable waves (spawn/rally click-to-place, wave count, enemies 1–5 then ∞ ramp), shooting (Space/Fire, auto-fire, fire rate, hits), and loot — shot enemies drop coins worth currency, picked up on contact. Standing on a pad pays currency and builds/upgrades a functional Rapid tower beside it. Shots kill enemies permanently; waves refill the field.
 - `shooting_sandbox` — shooting vs. random enemies (killed enemies respawn); map fills the whole camera POV with boundary walls.
 - `pickup_sandbox` — loot items scattered on the map: collect on contact (Auto) and on key press (Key).
 - `loot_spawn_sandbox` — spawn a pile of loot on click (LootDrop static helper).
