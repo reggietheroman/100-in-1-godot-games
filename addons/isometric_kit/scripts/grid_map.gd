@@ -100,6 +100,16 @@ func clear_walls():
 	walls.clear()
 
 
+## Rebuild only the wall bodies after `set_wall()` / `clear_walls()` changes,
+## without recreating the floor tiles. Use `build()` when `width`/`depth`
+## change too.
+func rebuild_walls():
+	for w in wall_bodies:
+		w.queue_free()
+	wall_bodies.clear()
+	_build_walls()
+
+
 ## Whether tile (x, z) is currently a wall.
 func is_wall(x: int, z: int) -> bool:
 	return walls.has(Vector2i(x, z))

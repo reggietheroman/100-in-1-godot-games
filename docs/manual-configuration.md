@@ -34,6 +34,57 @@ Runtime: set `target: Vector3` before adding to the tree. Call
 `take_damage(amount)` / `die()`. `die()` is idempotent and drops `loot_scene`
 once.
 
+## Enemy (navmesh) — `scripts/enemy_nav_mover.gd` / `scenes/enemy_nav.tscn`
+
+`CharacterBody3D` that pathfinds to `target` over a navigation mesh instead of
+walking in a straight line. Public surface matches `enemy_mover` (group
+`enemy`, `take_damage()`, `die()`, optional loot drop), so spawners, towers,
+and trigger areas treat it identically — point an `enemy_spawner`'s
+`enemy_scene` at `enemy_nav.tscn` to get pathfinding enemies. Signals:
+`reached_rally_point`, `damaged(amount, health)`, `died(enemy)`.
+
+| Export | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `move_speed` | float | 3.0 | Horizontal speed (units/s). |
+| `body_color` | Color | orange | Capsule tint. |
+| `stop_distance` | float | 0.2 | Distance to `target` the nav agent counts as "reached". |
+| `loot_scene` | PackedScene | unset | Dropped on death (see loot below). |
+| `max_health` | int | 1 | Health pool; `take_damage()` reduces it, 0 = `die()`. |
+
+Runtime: set `target: Vector3` before adding to the tree (the agent picks it up
+in `_ready`). The navmesh (and its `NavigationRegion3D`) must be in the same
+`World3D` — the agent uses the world's default navigation map. Bake one with
+`NavmeshBaker` (below).
+
+Collision: this scene sits on **collision layer 2 with mask 1** — it still
+collides with the floor/walls/player (layer 1) but walks through other enemies.
+`enemy_mover` (layer 1) does not; enemies that collide pile up on the final path
+segment and block the navmesh finish check. Projectiles use mask 3 so they still
+hit layer-2 enemies.
+
+## Navmesh baker — `scripts/navmesh_baker.gd`
+
+`class_name NavmeshBaker`, static helper:
+`NavmeshBaker.bake_from_grid(grid, agent_radius, agent_height)` parses every
+static body under a `grid_map` (floor AND walls, via their collision shapes) and
+returns a fresh `NavigationMesh`. Assign it to a `NavigationRegion3D`:
+`region.navigation_mesh = NavmeshBaker.bake_from_grid(grid)`. Returns a new
+resource each call, so toggled walls bake into a brand-new navmesh.
+
+Constants: `DEFAULT_CELL_SIZE = 0.1` (also the map cell size, matched in
+`project.godot`), `DEFAULT_AGENT_RADIUS = 0.4`, `DEFAULT_AGENT_HEIGHT = 1.8`,
+`DEFAULT_AGENT_MAX_CLIMB = 0.2`. Radius/height/climb are kept voxel multiples so
+baking doesn't round them.
+
+Important: like `parse_source_geometry_data()`, the grid must already be inside
+the scene tree when you bake — call it in `_ready()` or later, never before the
+node enters the tree. Region/map iteration builds are synchronous (see
+`project.godot`), so a baked navmesh is queryable on the very next physics frame.
+
+Nav constraints to design around: the navmesh erodes `agent_radius` from walls,
+so a tile corner is NOT reachable — aim for tile centers, which is why the
+pathfinding sandbox snaps spawn/rally points to tile centers.
+
 ## Enemy spawner — `scripts/enemy_spawner.gd`
 
 `Node3D` wave spawner. Signals: `wave_spawned(wave, count)`,
@@ -82,7 +133,8 @@ Methods: `start()`, `stop()`, `clear()` (frees live enemies, resets counters).
 
 Methods: `build()` (rebuild after width/depth/wall changes), `set_wall(x, z,
 height)` (height <= 0 removes), `clear_walls()`, `is_wall(x, z)`,
-`get_world_size()`.
+`rebuild_walls()` (rebuild only the wall bodies after wall changes — cheaper
+than `build()`, keeps the floor), `get_world_size()`.
 
 ## Visible footprint — `scripts/visible_footprint.gd`
 
@@ -118,6 +170,9 @@ Floating touch joystick `Control`. Group: `joystick`. Exposes `vector` (≤ 1).
 
 `Area3D` that flies along `direction`, applies `damage`, despawns on `enemy` /
 `wall` / `lifetime`. Signal: `hit(enemy)`. Group: `projectile`.
+
+The scene uses `collision_mask = 3` (collision layers 1 and 2) so it detects
+both classic enemies (layer 1) and nav enemies (layer 2).
 
 | Export | Type | Default | What it does |
 | --- | --- | --- | --- |
@@ -259,3 +314,6 @@ top):
 - `build_sandbox` — building + tower sites.
 - `tower_sandbox` — Rapid/Cannon/Sniper tower types vs waves.
 - `tower_defense` — everything wired together with 4 Rapid tower build pads.
+- `pathfinding_sandbox` — nav enemies path around walls: click-to-place spawn
+  (cyan) / rally (yellow) points, toggle middle walls (navmesh rebakes live),
+  then spawn a wave that routes around them.

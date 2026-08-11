@@ -59,6 +59,14 @@ pickup={
 ]
 }
 
+[navigation]
+
+world/map_use_async_iterations=false
+world/region_use_async_iterations=false
+3d/default_cell_size=0.1
+3d/default_cell_height=0.1
+3d/use_threads=false
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

@@ -26,6 +26,8 @@ const TRIGGER_SCENE := "res://addons/isometric_kit/scenes/trigger_area.tscn"
 const PROJECTILE_SCENE := "res://addons/isometric_kit/scenes/projectile.tscn"
 const GRID_SCRIPT := "res://addons/isometric_kit/scripts/grid_map.gd"
 const SPAWNER_SCRIPT := "res://addons/isometric_kit/scripts/enemy_spawner.gd"
+const NAVMESH_BAKER_SCRIPT := "res://addons/isometric_kit/scripts/navmesh_baker.gd"
+const ENEMY_NAV_SCENE := "res://addons/isometric_kit/scenes/enemy_nav.tscn"
 const LOOT_SCENE := "res://addons/isometric_kit/scenes/loot_item.tscn"
 const DEPOSIT_SCENE := "res://addons/isometric_kit/scenes/currency_deposit.tscn"
 const BUILD_SITE_SCENE := "res://addons/isometric_kit/scenes/build_site.tscn"
@@ -69,6 +71,7 @@ func _run() -> void:
 	await _test_spawner()
 	await _test_enemy_mover()
 	await _test_enemy_health()
+	await _test_navmesh()
 	await _test_trigger_area()
 	await _test_projectile()
 	await _test_tower()
@@ -301,6 +304,75 @@ func _test_enemy_health() -> void:
 	_check(_loot_group_count() == loot_count + 1, "die() drops loot only once across repeat calls")
 	enemy.free()
 	enemy2.free()
+
+
+func _test_navmesh() -> void:
+	print("== navmesh ==")
+	var grid = load(GRID_SCRIPT).new()
+	grid.width = 12
+	grid.depth = 12
+	root.add_child(grid)
+	await process_frame
+	# Default middle-wall pattern from the pathfinding sandbox: a wall line with
+	# a gap plus two blocks, so spawn → rally must detour.
+	var cx := 6
+	var cz := 6
+	for dz in [-5, -4, -3, 3, 4, 5]:
+		grid.set_wall(cx, cz + dz, 1.5)
+	grid.set_wall(cx - 4, cz, 1.5)
+	grid.set_wall(cx + 4, cz, 1.5)
+	grid.build()
+	await process_frame
+
+	# rebuild_walls() refreshes only the wall bodies, not the floor tiles.
+	var tile_count: int = grid.tiles.size()
+	grid.set_wall(0, 0, 1.0)
+	grid.rebuild_walls()
+	_check(grid.tiles.size() == tile_count, "rebuild_walls keeps the floor tiles")
+	_check(grid.wall_bodies.size() == 9, "rebuild_walls rebuilds a wall body per wall entry")
+
+	# Baking needs the grid in the tree (parse_source_geometry_data no-ops off-tree).
+	var baker = load(NAVMESH_BAKER_SCRIPT)
+	var region := NavigationRegion3D.new()
+	grid.add_child(region)
+	await process_frame
+	var navmesh = baker.bake_from_grid(grid, 0.4)
+	_check(navmesh.get_polygon_count() > 0, "bake_from_grid parses the grid's colliders into polygons")
+	region.navigation_mesh = navmesh
+	for _i in 5:
+		await physics_frame
+
+	# Two nav enemies spawned together must BOTH reach the rally (they path
+	# around the wall AND don't collide with each other, so the leader stopping
+	# at the target can't block the trailer from finishing its path).
+	var spawner = load(SPAWNER_SCRIPT).new()
+	spawner.enemy_scene = load(ENEMY_NAV_SCENE)
+	spawner.auto_start = false
+	spawner.spawn_point = Vector3(-4.5, 0.6, 4.5)
+	spawner.rally_point = Vector3(4.5, 0.6, -4.5)
+	spawner.wave_size = 2
+	spawner.max_waves = 1
+	root.add_child(spawner)
+	var all_reached: Array = []
+	spawner.all_enemies_reached_rally.connect(func(): all_reached.append(true))
+	spawner.start()
+	var guard := 0
+	var t0 := Time.get_ticks_msec()
+	while all_reached.is_empty() and Time.get_ticks_msec() - t0 < 8000 and guard < 3000:
+		await physics_frame
+		guard += 1
+	_check(not all_reached.is_empty(), "nav enemies path around the wall and both reach the rally")
+
+	var nav_bodies := 0
+	for child in spawner.get_children():
+		if child is CharacterBody3D:
+			nav_bodies += 1
+			_check(child.collision_layer == 2, "nav enemy sits on collision layer 2")
+			_check(child.collision_mask == 1, "nav enemy mask 1 (world only, ignores other enemies)")
+	_check(nav_bodies == 2, "both nav enemies are still alive after reaching")
+
+	spawner.free()
+	grid.free()
 
 
 func _loot_group_count() -> int:

@@ -92,6 +92,11 @@ text = "Towers"
 size_flags_horizontal = 4
 custom_minimum_size = Vector2(280, 36)
 
+[node name="SandboxPathfindingButton" type="Button" parent="Scroll/Layout"]
+text = "Pathfinding"
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(280, 36)
+
 [node name="BackButton" type="Button" parent="Scroll/Layout"]
 text = "Back to Main Menu"
 size_flags_horizontal = 4

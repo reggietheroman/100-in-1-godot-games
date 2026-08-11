@@ -37,9 +37,11 @@ Reusable 3D components driven by exported vars; sandboxes in `scenes/sandbox/` e
 
 - **Player controller** (`scripts/player_controller.gd`): `CharacterBody3D`, camera-relative WASD + touch joystick, exports `move_speed`/`acceleration`. Grouped `player`.
 - **Enemy mover** (`scripts/enemy_mover.gd`): `CharacterBody3D` that walks to a `target` and idles. Has a health pool (`max_health`, default 1 = one-shot): `take_damage(amount)` emits `damaged(amount, health)` and calls `die()` at zero; `die()` is idempotent, drops `loot_scene` once (if set), emits `died(enemy)`, then frees itself. Grouped `enemy`, emits `reached_rally_point`.
+- **Enemy nav mover** (`scripts/enemy_nav_mover.gd` + `scenes/enemy_nav.tscn`): `CharacterBody3D` that pathfinds to `target` over a navmesh via `NavigationAgent3D`, with the same public surface as `enemy_mover` (drop-in for spawners/towers/triggers). Waypoint progression is manual + index-persistent (`_next_waypoint()`) so a coincident first path point can't deadlock it. Collision layer 2, mask 1: collides with the world but not other enemies (projectiles use mask 3 to still hit them).
+- **Navmesh baker** (`scripts/navmesh_baker.gd`): `NavmeshBaker.bake_from_grid(grid, ...)` parses a grid's static colliders and bakes a fresh `NavigationMesh` (assign to a `NavigationRegion3D`); the grid must be in the tree first. Bakes at cell 0.1, matching `project.godot` `navigation/3d/default_cell_size` (sync iterations set there too). Navmesh erosion removes tile corners — aim targets at tile centers.
 - **Enemy spawner** (`scripts/enemy_spawner.gd`): wave spawner with `spawn_point`, `rally_point`, `wave_size`, `wave_interval`, `max_waves`. Optional per-wave growth via `ramp_enabled`/`ramp_start`/`ramp_every`: wave size = `ramp_start + (wave_number - 1) / ramp_every`. Signals `wave_spawned`, `all_enemies_reached_rally`, `waves_finished`.
 - **Trigger area** (`scripts/trigger_area.gd`): `Area3D` with `player_entered/exited` + `enemy_entered/exited` signals, `area_size`, `track_player`/`track_enemies`.
-- **Grid map** (`scripts/grid_map.gd`): checkerboard plane via `width`/`depth`/`tile_size`/colors; player/enemies use the same 1-unit tile size. Walls via `set_wall(x, z, height)`/`clear_walls()`/`is_wall(x, z)`; built as static boxes grouped `wall`.
+- **Grid map** (`scripts/grid_map.gd`): checkerboard plane via `width`/`depth`/`tile_size`/colors; player/enemies use the same 1-unit tile size. Walls via `set_wall(x, z, height)`/`clear_walls()`/`is_wall(x, z)`/`rebuild_walls()`; built as static boxes grouped `wall`.
 - **Visible footprint** (`scripts/visible_footprint.gd`): static helpers (`configure_map`, `ground_footprint`, `inside`, `is_boundary_wall`) that size a grid to the camera's visible ground footprint and mark boundary walls around it. `camera.size` is the *full* ortho frustum height, so the half-height is `size / 2`.
 - **Isometric camera** (`scripts/isometric_camera.gd`): orthographic camera, `map` ref, `angle`/`yaw`, auto-fits to map; `fit_size` overrides the fitted size. `setup()` computes `distance = max(size * 0.9, fitted_world * 0.9)` so the frustum bottom stays above the ground plane (avoids a clear-color band at the bottom of the view). Ortho image is distance-invariant, so this only affects near-plane clipping.
 - **Joystick** (`scripts/joystick.gd`): floating touch joystick (`visible_on_desktop` for testing).
@@ -107,5 +109,5 @@ Design specs live in `.opencode/plans/002-game-designs.md`. Keep the plan in syn
   godot --headless --path . --script addons/isometric_kit/tests/test_main.gd
   ```
 
-  Expect `tests passed: 146, failed: 0`. Tests must await a `process_frame` before
+  Expect `tests passed: 155, failed: 0`. Tests must await a `process_frame` before
   instancing scene nodes, since nodes added before the first frame never enter the tree.

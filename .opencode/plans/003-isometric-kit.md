@@ -22,6 +22,9 @@ All components are driven by exported vars so each scene can tune behavior for d
 
 - `scripts/player_controller.gd` — `CharacterBody3D`, camera-relative WASD + optional joystick. Exports `move_speed`, `acceleration`, `body_color`, `joystick`. Grouped `player`.
 - `scripts/enemy_mover.gd` — `CharacterBody3D` that walks to `target` and idles. Exports `move_speed`, `body_color`, `stop_distance`, `loot_scene`, `max_health` (default 1 = one-shot). `take_damage(amount)` reduces `health`, emits `damaged(amount, health)`, and calls `die()` at zero; `die()` drops `loot_scene` once (idempotent) and emits `died(enemy)` before freeing itself. Grouped `enemy`, also emits `reached_rally_point`.
+- `scripts/enemy_nav_mover.gd` / `scenes/enemy_nav.tscn` — `CharacterBody3D` that pathfinds to `target` over a navmesh (`NavigationAgent3D`) each physics frame, emitting `reached_rally_point` when the path finishes. Same public surface as `enemy_mover` (group "enemy", `take_damage()`, `die()`, optional loot drop), so spawners/towers/triggers treat it identically — point a spawner's `enemy_scene` at `enemy_nav.tscn` for pathfinding enemies. Path waypoint progression is manual and index-persistent (`_next_waypoint()`), so a coincident first path point can't deadlock the mover. Collision layer 2, mask 1: collides with the world but not other enemies (avoids pileups blocking the nav finish; projectiles use mask 3).
+- `scripts/navmesh_baker.gd` — `class_name NavmeshBaker`, static helper `bake_from_grid(grid, agent_radius, agent_height)` that parses the grid's static colliders and bakes a fresh `NavigationMesh` (assign to a `NavigationRegion3D`). Returns a new resource per call so toggled walls rebake cleanly. Bakes at `cell_size`/`cell_height` 0.1 (matched in `project.godot`'s `navigation/3d/default_cell_size`), parsing static colliders only (no GPU mesh readback). Grid must be inside the scene tree before baking.
+- `scripts/grid_map.gd` — checkerboard `Node3D` built from `width`/`depth`/`tile_size`/`tile_height`/colors. `build()` regenerates tiles. Supports walls via `set_wall(x, z, height)`/`clear_walls()`/`is_wall(x, z)` (stored in `walls`, built as `StaticBody3D` boxes grouped `wall`, `wall_color`), and `rebuild_walls()` to refresh only the wall bodies (cheaper than `build()` when toggling walls live, as the pathfinding sandbox does). `get_world_size()` used by the camera.
 - `scripts/enemy_spawner.gd` — `Node3D` wave spawner. Exports `enemy_scene`, `spawn_point`, `rally_point`, `wave_size`, `wave_interval`, `max_waves`, `auto_start`. Optional per-wave growth via `ramp_enabled`/`ramp_start`/`ramp_every`: wave size = `ramp_start + (wave_number - 1) / ramp_every`. Emits `wave_spawned(wave, count)`, `all_enemies_reached_rally`, `waves_finished`.
 - `scripts/trigger_area.gd` — `Area3D` with `player_entered/exited` and `enemy_entered/exited` signals. Exports `area_size`, `track_player`, `track_enemies`.
 - `scripts/grid_map.gd` — checkerboard `Node3D` built from `width`/`depth`/`tile_size`/`tile_height`/colors. `build()` regenerates tiles. Supports walls via `set_wall(x, z, height)`/`clear_walls()`/`is_wall(x, z)` (stored in `walls`, built as `StaticBody3D` boxes grouped `wall`, `wall_color`). `get_world_size()` used by the camera.
@@ -59,17 +62,20 @@ isometric camera and on-screen hint labels.
 - `currency_sandbox.tscn` — the full currency loop: wave enemies spawn and rally to a nearby point; killed enemies drop loot that becomes currency on pickup (wallet on the player); three banks with capacities 10/25/50 auto-drain the wallet while you stand on them (on-pad labels show `Bank d/c`). Kill via click or Space/Fire.
 - `build_sandbox.tscn` — the building loop: start with 500 currency; four dev-configured build sites (Outpost `[10, 25, 50]`, Barracks `[15, 35]`, Keep `[20, 40, 80]`, and a "Gatling Tower" site that builds a functional tower upgrading its stats via `tower_level_stats`). Standing on a pad pays coins (ticking coin arcs) and a tower of blocks grows beside it; every level-up fires a celebration popup + confetti, and the pad is removed once a site reaches its final stage.
 - `tower_sandbox.tscn` — towers vs. enemy waves: three pre-configured towers (Rapid — fast, low damage; Cannon — slow, splash AoE; Sniper — long range, high damage) auto-shoot waves of enemies that walk from the spawn point to the rally point. Start/Stop Waves button and a kills counter in the HUD.
+- `pathfinding_sandbox.tscn` — navmesh pathfinding: enemies navigate around walls instead of walking in a straight line. Click-to-place spawn (cyan) and rally (yellow) markers, toggle middle walls (navmesh rebakes live via `rebuild_walls()` + `NavmeshBaker`), enemy count 1–20, then Spawn Enemies routes a wave around the obstacles. The default spawn/rally snap to tile centers because navmesh erosion makes tile corners unreachable.
 
 All sandboxes are reachable from the main menu via the "Dev Sandboxes" button (scenes/menu/sandbox_menu.tscn).
 
 ## Tests
 
-Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (146 checks) cover grid
+Headless unit tests in `addons/isometric_kit/tests/test_main.gd` (155 checks) cover grid
 geometry/walls, footprint math, camera setup, spawner wave counts/ramp/restart, enemy
 reaching, enemy health (`take_damage`/`damaged`/`died`, idempotent `die()` + single loot
-drop), trigger zones, projectile despawn + damage/splash, joystick vectors, player
-movement, loot drops/pickups, currency wallet/deposit caps (including the pad `paused`
-state), build-site stage level-ups (tower blocks, pad removal at max level,
+drop), navmesh (bake-from-grid polygons, `rebuild_walls` keeping floor tiles, nav enemies
+pathing around a wall and both reaching the rally without colliding), trigger zones,
+projectile despawn + damage/splash, joystick vectors, player movement, loot
+drops/pickups, currency wallet/deposit caps (including the pad `paused` state),
+build-site stage level-ups (tower blocks, pad removal at max level,
 structure_scene segments, first-level pause, tower sites building/upgrading a tower),
 tower behavior (aiming, firing only in range, configured damage, `enemy_killed` on a kill,
 `level_stats` overrides/clamping), and the celebration popup (spawns on level-up, confetti
